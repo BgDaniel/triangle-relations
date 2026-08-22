@@ -18,6 +18,8 @@ from typing import Callable
 import numpy as np
 from numpy.typing import ArrayLike
 
+from triangle_relations.geometry.plotting import plot_triangle
+
 logger = logging.getLogger(__name__)
 
 #: Relative area threshold (2 * area / perimeter^2) below which a triangle is
@@ -394,8 +396,6 @@ class Triangle:
         function for the full set of keyword options. Returns the
         matplotlib ``Axes`` used for the plot.
         """
-        from triangle_relations.geometry.plotting import plot_triangle
-
         return plot_triangle(self, **kwargs)
 
 

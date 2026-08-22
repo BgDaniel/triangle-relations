@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from triangle_relations.discovery.sampling import build_scalar_dataset
@@ -118,8 +119,6 @@ def _plot_surface_vs_volume(data: np.ndarray, names: list[str], rng: np.random.G
     The real (R, r, d) triple should visibly collapse onto a thin 2D
     surface, while the column-shuffled null should fill the full 3D volume.
     """
-    import matplotlib.pyplot as plt
-
     shuffled = shuffle_columns(data, rng)
 
     data_plot = data[_trim_outliers(data)]

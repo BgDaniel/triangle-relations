@@ -10,11 +10,15 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
+    # Only imported for type hints: importing Triangle for real at module
+    # level would create a circular import, since triangle.py imports
+    # plot_triangle from this module.
     from triangle_relations.geometry.triangle import Triangle
 
 logger = logging.getLogger(__name__)
@@ -58,8 +62,6 @@ def plot_triangle(
     -------
     The matplotlib ``Axes`` used for the plot.
     """
-    import matplotlib.pyplot as plt
-
     if ax is None:
         logger.debug("no Axes supplied; creating a new figure")
         _, ax = plt.subplots(figsize=(6, 6))
@@ -136,16 +138,3 @@ def _plot_steiner_inellipse(
     unit_circle = r * np.column_stack([np.cos(theta), np.sin(theta)])
     ellipse = unit_circle @ M.T + t
     ax.plot(ellipse[:, 0], ellipse[:, 1], color=color, linewidth=1, zorder=2)
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-
-    import matplotlib.pyplot as plt
-
-    from triangle_relations.geometry.triangle import Triangle
-
-    sample = Triangle((0.5, 0.2), (4.0, 0.8), (1.5, 3.2))
-    plot_triangle(sample)
-    plt.title("Sample triangle with all derived objects")
-    plt.show()

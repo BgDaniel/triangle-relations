@@ -27,7 +27,7 @@ t.all_points()          # dict of every registered derived point
 t.plot()   # every derived object is shown by default; pass show_x=False to hide one
 ```
 
-Run `python -m triangle_relations.geometry.plotting` for a standalone demo on a sample triangle.
+Run `poetry run python scripts/plot_sample_triangle.py` for a standalone demo on a sample triangle.
 
 Derived points (`Triangle.POINTS`): centroid, circumcenter, incenter, orthocenter,
 and the two foci of the Steiner inellipse (via Marden's theorem).
