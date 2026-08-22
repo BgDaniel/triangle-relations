@@ -1,317 +1,211 @@
-\documentclass[11pt]{amsart}
-
+\documentclass[11pt,reqno]{amsart}
+\usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{newtxtext,newtxmath}
-\usepackage[margin=1.25in]{geometry}
-\usepackage{hyperref}
+\usepackage[osf]{mathpazo}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{microtype}
+\usepackage[a4paper,margin=1.3in]{geometry}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black]{hyperref}
+
+\makeatletter
+\renewcommand\section{\@startsection{section}{1}%
+  \z@{3\linespacing\@plus1.2\linespacing\@minus.6\linespacing}%
+  {1.2\linespacing}%
+  {\normalfont\large\scshape\centering}}
+\makeatother
+
+\linespread{1.06}
+\emergencystretch=3em
+\numberwithin{equation}{section}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{example}[theorem]{Example}
+
+\newcommand{\M}{\mathcal{M}}
 
 \title[Discovering Hidden Relations Among Triangle Invariants]%
-{Discovering Hidden Relations \\ Among Triangle Invariants}
-
+{Discovering Hidden Relations\\[3pt] Among Triangle Invariants}
 \author{triangle-relations project}
 \date{}
 
 \subjclass[2020]{51M04, 68T07}
 \keywords{triangle geometry, Euler's relation, functional dependence, autoencoders, dimension counting}
 
-\newcommand{\M}{\mathcal{M}}
-
-\newtheorem{proposition}{Proposition}
-\newtheorem{remark}[proposition]{Remark}
-
 \begin{document}
 
 \begin{abstract}
-We describe a numerical method for discovering previously unknown functional
-relations among scalar quantities derived from a triangle, in the spirit of
-Euler's classical relation between the circumradius, the inradius, and the
-distance between the incenter and circumcenter. Because a triangle has three
-degrees of freedom up to rigid motion, a relation among four or more derived
-scalars is guaranteed by dimension counting alone and is therefore
-uninformative; a relation among exactly three scalars, by contrast, is a
-genuine and generically unexpected algebraic coincidence. We detect such coincidences by training a bottleneck autoencoder on sampled
-triangle data and comparing its reconstruction error against a
-column-permuted null. Applied to the circumradius, inradius, and
-incenter-to-circumcenter distance, the method flags exactly this triple as
-functionally dependent, with no prior knowledge of Euler's relation.
+We describe a numerical method for discovering unknown functional relations
+among scalar quantities derived from a triangle, in the spirit of Euler's
+relation between the circumradius, the inradius, and the incenter-to-
+circumcenter distance. A triangle has three degrees of freedom, so a
+relation among four or more derived scalars is guaranteed by dimension
+counting alone and is uninformative; a relation among exactly three is a
+genuine, generically unexpected coincidence. We detect such coincidences by
+training a bottleneck autoencoder on sampled triangle data and comparing its
+reconstruction error against a column-permuted null, and make the detector's
+behavior mathematically precise. Applied to $(R,r,d)$, the method flags
+exactly this triple as dependent, with no prior knowledge of Euler's
+relation.
 \end{abstract}
 
 \maketitle
 
-\section{Setup: the moduli space of triangles}
+\section{Dimension counting}
+\label{sec:setup}
 
-A triangle is specified by three points in $\mathbb{R}^2$, i.e.\ six real
-parameters. Every quantity we consider (area, perimeter, circumradius $R$,
-inradius $r$, distances between derived points, \dots) is built purely from
-the vertex coordinates and is invariant under rigid motions: translating or
-rotating the triangle does not change its area, its inradius, or the
-distance between its incenter and circumcenter. Translations (2 parameters)
-and rotations (1 parameter) form a 3-dimensional group acting on the
-6-dimensional space of vertex triples; quotienting it out leaves a
-$3$-dimensional moduli space $\M$ of triangle shapes up to congruence
-(reflection is a further discrete symmetry and does not change this
-dimension count). Concretely, $\M$ can be coordinatized by, e.g., the three
-side lengths $(a,b,c)$ subject to the triangle inequality.
+A triangle, up to translation and rotation, has three degrees of freedom
+(e.g.\ its three side lengths $a,b,c$); write $\M$ for this moduli space,
+$\dim\M=3$. Every derived scalar (area, $R$, $r$, distances between derived
+points, \dots) is a smooth function $f:\M\to\mathbb R$, and $k$ of them give
+a map $F=(f_1,\dots,f_k):\M\to\mathbb R^k$. Call a property of $F$
+\emph{generic} if it holds outside a closed, measure-zero exceptional set of
+choices of the $f_i$.
 
-Every derived scalar quantity is a smooth function $f : \M \to \mathbb{R}$.
-Choosing $k$ such quantities gives a smooth map
-\[
-  F = (f_1, \dots, f_k) : \M \to \mathbb{R}^k .
-\]
-Recall that a (smooth) $m$-dimensional submanifold of $\mathbb R^n$ is a
-subset that, near each of its points, agrees with the graph of a smooth
-function expressing $n-m$ of the coordinates in terms of the other $m$; this
-is what lets us speak of $\M$ itself, and of the image of $F$, as having a
-well-defined dimension even though neither is simply a coordinate subspace
-of $\mathbb R^k$. We call a property of such a map \emph{generic} if it
-holds for every choice of $F$ outside a closed, measure-zero exceptional
-set — informally, for ``almost every'' choice of derived quantities, and
-stably so under small perturbations of them.
+If $k>3$, a generic $F$ has, as its image, an (at most) $3$-dimensional
+submanifold of $\mathbb R^k$: embedding a $3$-dimensional space into a
+higher-dimensional one produces $k-3$ constraint equations \emph{for free},
+regardless of which $f_i$ were chosen. So a relation among four or more
+triangle invariants says nothing specific about triangle geometry.
 
-\section{Why relations among four or more quantities are not interesting}
+If $k=3$, recall that the Jacobian $DF(p)$ is the $3\times3$ matrix of
+partial derivatives $(\partial f_i/\partial x_j)$ in local coordinates on
+$\M$, and $F$ is a \emph{local diffeomorphism} at $p$ (a smooth bijection
+near $p$ with smooth inverse) exactly when $DF(p)$ is invertible. Generically
+$DF$ has full rank $3$, and $(f_1,f_2,f_3)$ sweeps out an open
+\emph{$3$-dimensional} region of $\mathbb R^3$ --- a solid blob, not a surface.
+An \emph{exact} relation $G(f_1,f_2,f_3)=0$ is equivalent to $DF$ having rank
+$\le2$ everywhere, collapsing the image onto a $2$-dimensional surface: not
+generic, a genuine algebraic coincidence. Euler's relation
+\begin{equation}
+  d^2=R^2-2Rr
+\end{equation}
+($d$ = incenter-to-circumcenter distance) is exactly such a statement about
+$(R,r,d)$. This is the sense in which a relation among exactly three
+invariants --- not four --- is structurally new.
 
-If $k > \dim \M = 3$, a generic smooth map from a 3-manifold into
-$\mathbb{R}^k$ has, as its image, an (at most) 3-dimensional submanifold of
-$\mathbb{R}^k$ — this is just the statement that embedding a 3-dimensional
-space into a higher-dimensional ambient space produces $k-3$ constraint
-equations for free, regardless of which $k$ functions were chosen, as long
-as they are not specially degenerate. Concretely, this image is cut out
-locally by $k-3$ independent equations $G_i(f_1,\dots,f_k) = 0$. So finding
-\emph{some} relation among four or more triangle invariants is guaranteed by
-dimension counting alone. It says nothing specific about triangle geometry —
-it would happen for essentially any four smooth functions on any
-3-dimensional space of objects.
+\section{The autoencoder detector}
+\label{sec:autoencoder}
 
-\section{Why a relation among exactly three quantities is special}
-
-If $k = \dim \M = 3$ exactly, the situation is qualitatively different.
-Recall that the Jacobian $DF(p)$ of a differentiable map
-$F=(f_1,f_2,f_3):\M\to\mathbb R^3$ at a point $p$ is the $3\times 3$ matrix
-of partial derivatives $\big(\partial f_i/\partial x_j\big)$ in local
-coordinates $x_j$ on $\M$; its rank measures how many of the $f_i$ vary
-independently of one another near $p$. Recall also that $F$ is a \emph{local
-diffeomorphism} at $p$ if it restricts to a smooth bijection, with smooth
-inverse, from some neighborhood of $p$ onto some neighborhood of $F(p)$ —
-by the inverse function theorem, exactly when $DF(p)$ is invertible.
-
-A generic smooth map $F : \M \to \mathbb{R}^3$ is, at a generic point, a
-local diffeomorphism: its Jacobian $DF$ has full rank 3, and as the triangle
-shape ranges over an open subset of $\M$, the triple $(f_1,f_2,f_3)$ sweeps
-out a full 3-dimensional \emph{open region} of $\mathbb{R}^3$ — a solid
-blob, not a surface. This is again a genericity statement: for an arbitrary
-hand-picked triple of triangle invariants, there is no a priori reason for
-$DF$ to be rank-deficient anywhere.
-
-An \emph{exact} relation $G(f_1,f_2,f_3) = 0$ holding on all of $\M$ is
-therefore equivalent to $DF$ having rank $\le 2$ everywhere: the image
-collapses onto a 2-dimensional surface embedded in $\mathbb{R}^3$, instead of
-filling out a full 3-dimensional region. That is not generic — it is a
-genuine algebraic coincidence, exactly the kind of fact that constitutes a
-classical theorem. Euler's relation
-\[
-  d^2 = R^2 - 2Rr
-\]
-(where $d$ is the distance between the incenter and circumcenter) is exactly
-a statement that the Jacobian of $(R, r, d)$ as functions of triangle shape
-has rank $\le 2$ everywhere, collapsing three ostensibly independent
-quantities onto a single surface. This is the precise sense in which
-searching for relations among exactly three derived scalars — and not four —
-is the search for something structurally new.
-
-\section{Detecting rank-deficiency with a bottleneck autoencoder}
-
-Given a candidate triple $(f_1,f_2,f_3)$, we want a numerical test for
-whether the induced map $F : \M \to \mathbb{R}^3$ has full rank 3 generically
-(data fills a 3D region) or is everywhere rank $\le 2$ (data is confined to a
-2D surface). We sample many random triangles — many points of $\M$ — and
-evaluate $(f_1,f_2,f_3)$ on each, producing a point cloud
-$X \subset \mathbb{R}^3$.
-
-An autoencoder with a 2-dimensional latent bottleneck, an encoder
-$e : \mathbb{R}^3 \to \mathbb{R}^2$ and decoder $d : \mathbb{R}^2 \to
-\mathbb{R}^3$ trained to minimize $\mathbb{E}\, \| d(e(x)) - x \|^2$ over the
-sample, is exactly searching for the best rank-2 (nonlinear) approximation to
-the data:
-\begin{itemize}
-  \item If the data truly lies on a 2-dimensional surface (an exact relation
-    holds), a 2-dimensional latent code is not actually a bottleneck for it —
-    a sufficiently expressive encoder/decoder pair can in principle drive the
-    reconstruction error to (near) zero, since the encoder just needs to
-    learn a local chart of the surface and the decoder its inverse.
-  \item If the data genuinely fills an open 3-dimensional region, no
-    continuous map that factors through a 2-dimensional intermediate space
-    can reconstruct it without loss: an entire dimension worth of variation
-    is necessarily discarded. Reconstruction error is then bounded away from
-    zero, on the order of the data's own extent in the discarded direction.
-\end{itemize}
-
-This gives a clean signature: near-zero reconstruction error with a
-2-dimensional bottleneck is evidence for an (exact or near-exact) relation
-among the three chosen quantities; error comparable to the data's own scale
-is consistent with the generic, full-rank, no-relation case.
+Given a candidate triple $(f_1,f_2,f_3)$, sample many random triangles and
+form the point cloud $X=\{(f_1,f_2,f_3)(T)\}\subset\mathbb R^3$. An
+autoencoder --- an encoder $e:\mathbb R^3\to\mathbb R^2$ and decoder
+$d:\mathbb R^2\to\mathbb R^3$ trained to minimize
+$\mathbb E\|d(e(x))-x\|^2$ --- searches for the best rank-$2$ approximation to
+$X$: if $X$ lies on a $2$-surface, the encoder need only learn a local chart
+and the decoder its inverse, driving error to $0$; if $X$ fills an open
+$3$-region, no map factoring through $\mathbb R^2$ can avoid discarding a
+whole dimension, so error stays bounded away from $0$.
 
 \subsection{A precise statement}
 
-We can make this dichotomy precise. Let $P$ denote the law of
-$(f_1,f_2,f_3)(T)$ for a random triangle $T$, and write
-$X = \operatorname{supp}(P) \subset \mathbb{R}^3$ for the support of $P$
-(the smallest closed set carrying all of its probability mass).
+Let $P$ be the law of $(f_1,f_2,f_3)(T)$ and $X=\operatorname{supp}(P)$. By a
+\emph{two-layer perceptron of width $h$} we mean
+$N(x)=W_2\,\sigma(W_1x+b_1)+b_2$, with $W_1\in\mathbb R^{h\times p}$,
+$b_1\in\mathbb R^h$, $W_2\in\mathbb R^{q\times h}$, $b_2\in\mathbb R^q$
+trainable and $\sigma=\tanh$ applied componentwise; write
+$\mathcal N_h(\mathbb R^p,\mathbb R^q)$ for the class of all such maps.
+Recall $g$ is \emph{$K$-Lipschitz} if $\|g(x)-g(y)\|\le K\|x-y\|$; since
+$\tanh$ is $1$-Lipschitz, every two-layer perceptron is Lipschitz, with
+constant controlled by $\|W_1\|,\|W_2\|$. Train
+$e\in\mathcal N_h(\mathbb R^3,\mathbb R^2)$, $d\in\mathcal
+N_h(\mathbb R^2,\mathbb R^3)$ to minimize
+$L(e,d)=\mathbb E_{x\sim P}\|d(e(x))-x\|^2$.
 
-By a \emph{two-layer perceptron of hidden width $h$} we mean a function
-$N : \mathbb R^p \to \mathbb R^q$ of the form
-\[
-  N(x) \;=\; W_2 \, \sigma(W_1 x + b_1) + b_2 ,
-\]
-where $W_1 \in \mathbb R^{h \times p}$, $b_1 \in \mathbb R^h$,
-$W_2 \in \mathbb R^{q \times h}$, $b_2 \in \mathbb R^q$ are the trainable
-weights and biases (``two-layer'' for the two weight matrices $W_1, W_2$;
-this is what our encoders and decoders are individually, before being
-composed into the single autoencoder network of \S 4), and $\sigma$ is a
-fixed nonlinear activation applied componentwise — here $\sigma = \tanh$.
-Recall that a function $g$ is \emph{$K$-Lipschitz} if
-$\|g(x) - g(y)\| \le K\|x - y\|$ for all $x,y$; since $\tanh$ itself is
-$1$-Lipschitz, every two-layer perceptron is Lipschitz, with constant
-controlled by the operator norms of $W_1$ and $W_2$. For a fixed hidden
-width $h$, let $\mathcal N_h(\mathbb R^p, \mathbb R^q)$ denote the class of
-all two-layer perceptrons $\mathbb R^p \to \mathbb R^q$ of that width. We
-train an encoder $e \in \mathcal N_h(\mathbb R^3, \mathbb R^2)$ and a
-decoder $d \in \mathcal N_h(\mathbb R^2, \mathbb R^3)$ to minimize the
-reconstruction risk
-\[
-  L(e,d) \;=\; \mathbb{E}_{x \sim P} \, \|d(e(x)) - x\|^2 .
-\]
-
-\begin{proposition}[Sufficiency]
-Recall that a subset of $\mathbb R^n$ is \emph{compact} exactly when it is
-closed and bounded (Heine--Borel) — for us, $X$ is compact whenever the
-random triangles are sampled from a bounded region, as they are in
-practice. If $X$ is compact and admits continuous maps $\varphi : X \to \mathbb R^2$
-and $\psi : \varphi(X) \to \mathbb R^3$ with $\psi(\varphi(x)) = x$ for all
-$x \in X$ — in particular, whenever an exact relation
-$G(f_1,f_2,f_3) = 0$ confines $X$ to a $2$-dimensional set — then for every
-$\varepsilon > 0$ there is a width $h$ and a pair
-$(e,d) \in \mathcal N_h(\mathbb R^3,\mathbb R^2) \times
-\mathcal N_h(\mathbb R^2,\mathbb R^3)$ with $L(e,d) < \varepsilon$.
+\begin{proposition}[Sufficiency]\label{prop:suff}
+Recall a subset of $\mathbb R^n$ is \emph{compact} iff closed and bounded
+(Heine--Borel). If $X$ is compact and admits continuous
+$\varphi:X\to\mathbb R^2$, $\psi:\varphi(X)\to\mathbb R^3$ with
+$\psi(\varphi(x))=x$ for all $x\in X$ --- in particular whenever an exact
+relation confines $X$ to a $2$-dimensional set --- then for every
+$\varepsilon>0$ there is a width $h$ and $(e,d)$ with $L(e,d)<\varepsilon$.
 \end{proposition}
 
 \begin{proof}[Proof sketch]
-Recall the universal approximation theorem (Cybenko, 1989; Hornik, 1991):
-for any continuous $\varphi : K \to \mathbb R^q$ on a compact set $K$ and
-any $\delta > 0$, there is a hidden width $h$ and a two-layer perceptron
-$N \in \mathcal N_h(\mathbb R^p, \mathbb R^q)$ with
-$\sup_{x \in K} \|N(x) - \varphi(x)\| < \delta$. Applying this to $\varphi$
-on $X$ and to $\psi$ on $\varphi(X)$ gives encoders/decoders $e, d$ with
-$\sup_{x \in X} \|d(e(x)) - x\| \to 0$ as $\delta \to 0$, hence
-$L(e,d) \to 0$.
+By the universal approximation theorem (Cybenko 1989; Hornik 1991): for any
+continuous $\varphi:K\to\mathbb R^q$ on compact $K$ and any $\delta>0$, some
+$N\in\mathcal N_h(\mathbb R^p,\mathbb R^q)$ satisfies
+$\sup_{x\in K}\|N(x)-\varphi(x)\|<\delta$. Approximating $\varphi$ on $X$ and
+$\psi$ on $\varphi(X)$ gives $e,d$ with $\sup_{x\in X}\|d(e(x))-x\|\to0$,
+hence $L(e,d)\to0$.
 \end{proof}
 
-\begin{proposition}[Necessity, at bounded capacity]
-Fix $K > 0$. Recall that a probability measure $P$ on $\mathbb R^n$ is
-\emph{absolutely continuous} (with respect to Lebesgue measure) if it
-assigns zero probability to every set of Lebesgue measure zero, i.e.\ it has
-a density; this is the standard way of saying ``$P$ does not secretly
-concentrate on some lower-dimensional set.'' Suppose $X$ contains an open
-ball $B \subset \mathbb R^3$ on which $P$ is absolutely continuous with
-$P(B) > 0$. Then there is a constant $c = c(P|_B, K) > 0$ such that
-$L(e,d) \ge c$ for every pair of $K$-Lipschitz maps
-$e : \mathbb R^3 \to \mathbb R^2$, $d : \mathbb R^2 \to \mathbb R^3$ — in
-particular for every $(e,d) \in \mathcal N_h(\mathbb R^3,\mathbb R^2) \times
-\mathcal N_h(\mathbb R^2,\mathbb R^3)$, of any width $h$, whose realized
-weights keep the Lipschitz constant below $K$.
+\begin{proposition}[Necessity, at bounded capacity]\label{prop:nec}
+Fix $K>0$. Recall $P$ is \emph{absolutely continuous} (w.r.t.\ Lebesgue
+measure) if it assigns zero probability to every Lebesgue-null set, i.e.\
+has a density. If $X$ contains an open ball $B$ on which $P$ is absolutely
+continuous with $P(B)>0$, there is $c=c(P|_B,K)>0$ with $L(e,d)\ge c$ for
+every pair of $K$-Lipschitz $e,d$ --- in particular for every
+$(e,d)\in\mathcal N_h(\mathbb R^3,\mathbb R^2)\times\mathcal
+N_h(\mathbb R^2,\mathbb R^3)$ whose realized weights keep the Lipschitz
+constant below $K$.
 \end{proposition}
 
 \begin{proof}[Proof sketch]
-Recall that the Hausdorff dimension of a set $S \subset \mathbb R^n$
-generalizes the usual notion of dimension to arbitrary (possibly non-smooth)
-sets: informally, it is the value $\alpha$ such that covering $S$ by balls
-of radius $\varepsilon$ requires on the order of $\varepsilon^{-\alpha}$ of
-them as $\varepsilon \to 0$; it agrees with the usual dimension on smooth
-submanifolds, and a standard fact is that Lipschitz maps do not increase
-it. Since $d$ is $K$-Lipschitz, its image $d(\mathbb R^2)$ therefore has
-Hausdorff dimension at most $2$, and a subset of $\mathbb R^3$ of Hausdorff
-dimension less than $3$ automatically has (ordinary, $3$-dimensional)
-Lebesgue measure zero, i.e.\ is \emph{Lebesgue-null}. As $P$ is absolutely
-continuous on $B$ with $P(B) > 0$, it assigns zero mass to this null set, so
-$\operatorname{dist}(x, d(\mathbb R^2)) > 0$ for $P|_B$-almost every $x$; a
-routine compactness argument over $K$-Lipschitz maps then gives a strictly
-positive lower bound $c$ on $\mathbb E_{x \sim P|_B}
-\operatorname{dist}(x, d(\mathbb R^2))^2$. Since $d(e(\mathbb R^3)) \subseteq
-d(\mathbb R^2)$, we have $\|d(e(x)) - x\| \ge \operatorname{dist}(x,
-d(\mathbb R^2))$ pointwise, and the same bound applies to $L(e,d)$.
+The Hausdorff dimension of $S\subset\mathbb R^n$ generalizes ordinary
+dimension to non-smooth sets (covering $S$ by $\varepsilon$-balls takes
+$\sim\varepsilon^{-\dim S}$ of them); Lipschitz maps do not increase it. So
+$d(\mathbb R^2)$ has Hausdorff dimension $\le2$, hence is Lebesgue-null in
+$\mathbb R^3$, hence $P$-null on $B$; thus $\operatorname{dist}(x,d(\mathbb
+R^2))>0$ for $P|_B$-a.e.\ $x$, and a compactness argument over $K$-Lipschitz
+maps gives $\mathbb E_{x\sim P|_B}\operatorname{dist}(x,d(\mathbb
+R^2))^2\ge c>0$. Since $d(e(\mathbb R^3))\subseteq d(\mathbb R^2)$, the same
+bound applies to $L(e,d)$.
 \end{proof}
 
 \begin{remark}
-The capacity bound $K$ is not a mere technicality. Recall Brouwer's
-invariance-of-domain theorem: a continuous injective map between open
-subsets of $\mathbb R^n$ is necessarily an open map (its image is open); in
-particular, no continuous injection of $\mathbb R^2$ into $\mathbb R^3$ can
-have open image, so an exact space-filling reconstruction is topologically
-impossible regardless of capacity. What Brouwer's theorem does \emph{not}
-rule out is \emph{approximate} space-filling: an unconstrained sequence of
-increasingly ill-conditioned (large-Lipschitz-constant) maps can approach
-such behavior arbitrarily closely without ever achieving it, which would
-erode the uniform lower bound $c$ as $K \to \infty$. In practice this is not
-a loophole: the $\ell_2$ weight regularization and early stopping used when
-training the autoencoder keep the realized Lipschitz constant controlled,
-which is exactly why the dichotomy above is what we observe empirically.
+By Brouwer's invariance-of-domain theorem, a continuous injection between
+open subsets of $\mathbb R^n$ is an open map, so no continuous injection of
+$\mathbb R^2$ into $\mathbb R^3$ has open image: exact space-filling is
+topologically impossible regardless of capacity. What is not ruled out is
+\emph{approximate} space-filling by increasingly large-Lipschitz-constant
+maps as $K\to\infty$, which is why Proposition~\ref{prop:nec} fixes $K$; in
+practice $\ell_2$ weight regularization and early stopping keep the realized
+Lipschitz constant controlled.
 \end{remark}
 
-Together, Propositions 1 and 2 say that, at any fixed, reasonably regularized
-network capacity, whether reconstruction error tends to $0$ or stays bounded
-away from it is not a matter of degree: it is decided entirely by whether
-the sampled data is confined to a $2$-dimensional subset of $\mathbb R^3$,
-i.e.\ by whether $f_1, f_2, f_3$ satisfy an exact functional relation on the
-region sampled. This is the theoretical content behind the empirical
-detection rule used throughout this paper.
+Propositions~\ref{prop:suff} and \ref{prop:nec} say that, at any fixed,
+regularized capacity, reconstruction error going to $0$ versus staying
+bounded away from it is decided entirely by whether $(f_1,f_2,f_3)$ satisfy
+an exact relation --- the theoretical content behind the detection rule used
+throughout.
 
-\section{Calibrating ``near zero'' with a permutation null}
+\section{Calibration via a permutation null}
+\label{sec:null}
 
-An absolute error threshold is not meaningful across different triples of
-scalars: they differ in units, scale, and marginal shape, and — since all
-derived scalars are ultimately functions of the same three underlying
-triangle parameters — some triples are mildly correlated even without an
-exact relation. What is needed is a triple-specific baseline for ``no
-relation.''
+An absolute error threshold is not meaningful across triples: they differ in
+units and scale, and since all derived scalars are functions of the same
+three triangle parameters, some triples correlate mildly without an exact
+relation. We build a null $X'$ by independently permuting each column of
+$X$, which preserves each $f_i$'s marginal while destroying the joint
+dependency. Writing $L_{\mathrm{real}}$ and $\mu_{\mathrm{null}},
+\sigma_{\mathrm{null}}$ for the real and (repeated) null reconstruction
+risk, we compare via the $z$-score
+\begin{equation}
+  z=\frac{\mu_{\mathrm{null}}-L_{\mathrm{real}}}{\sigma_{\mathrm{null}}} ,
+\end{equation}
+or the ratio $L_{\mathrm{real}}/\mu_{\mathrm{null}}$: a large $z$ (small
+ratio) is the fingerprint of an unexpected relation.
 
-We construct a null sample $X'$ by independently permuting each of the three
-columns of $X$. This exactly preserves each $f_i$'s own one-dimensional
-marginal distribution while completely destroying the joint dependency
-between the three: each row of $X'$ combines values from unrelated triangle
-instances. Any real functional relation is annihilated by this shuffle.
-Training the same autoencoder architecture on $X'$ (repeated a few times)
-estimates the reconstruction error one should expect for three quantities
-with these particular marginals but \emph{no} shared structure. Writing
-$L_{\mathrm{real}}$ for the reconstruction risk on the real data and
-$\mu_{\mathrm{null}}, \sigma_{\mathrm{null}}$ for the mean and standard
-deviation of the reconstruction risk over the shuffled repeats, we compare
-the two via the standard $z$-score
-\[
-  z \;=\; \frac{\mu_{\mathrm{null}} - L_{\mathrm{real}}}{\sigma_{\mathrm{null}}} ,
-\]
-i.e.\ the number of null standard deviations by which the real error falls
-below the null mean, or equivalently via the ratio
-$L_{\mathrm{real}}/\mu_{\mathrm{null}}$. Both
-give a self-calibrated significance measure that is robust to the units and
-distribution of whichever three scalars are being tested: a large $z$ (or a
-small ratio) — real error far below the null — is the fingerprint of an
-unexpected relation among exactly three quantities.
-
-\section{The full pipeline}
+\section{The pipeline}
+\label{sec:pipeline}
 
 \begin{enumerate}
-  \item Enumerate candidate triples of derived scalar quantities.
-  \item For each triple, sample random triangles once, train a 2-bottleneck
-    autoencoder, and compare its held-out reconstruction error to a
-    column-shuffled null (several repeats).
-  \item Rank triples by how much better the real data compresses than its
-    null counterpart (small ratio $=$ strong candidate).
+  \item Enumerate candidate triples of derived scalars.
+  \item Sample random triangles once per triple; train a $2$-bottleneck
+    autoencoder; compare held-out error to a column-shuffled null (several
+    repeats).
+  \item Rank triples by real/null ratio (small $=$ strong candidate).
 \end{enumerate}
-
-The autoencoder is used purely as a screening tool here: it tells us
-\emph{whether} a triple of quantities is suspiciously dependent, not what
-the relation is. The \texttt{verify\_euler\_relation} module (in
-\texttt{triangle\_relations/discovery}) runs this exact pipeline on
-$(R, r, d)$ as a worked example, confirming it correctly flags this triple —
-Euler's relation — with no prior knowledge of the formula.
+The autoencoder is purely a screening tool: it flags \emph{whether} a triple
+is suspiciously dependent, not what the relation is. The
+\texttt{verify\_euler\_relation} module runs this on $(R,r,d)$, confirming
+it flags Euler's relation with no prior knowledge of the formula.
 
 \end{document}
