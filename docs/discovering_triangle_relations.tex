@@ -142,17 +142,23 @@ $(R,R/2,0)$ with $R>0$, $\nabla G=(R,-2R,0)\ne0$. It becomes an edge of the
 part of $\Sigma$, but physically meaningless --- is discarded.
 \end{proof}
 
-Figure~\ref{fig:euler-surface} shows the physical surface together with
-$600$ sampled triangles, which fall exactly on it, with the equilateral edge
-marked in red; Figure~\ref{fig:euler-cone} shows the full variety $\Sigma$,
-both branches, meeting at the singular vertex.
+Figure~\ref{fig:euler-surface} shows a representative local patch of the
+physical surface together with sampled triangles, which fall exactly on it,
+with the equilateral edge marked in red; Figure~\ref{fig:euler-cone} shows
+the full variety $\Sigma$, both branches, meeting at the singular vertex.
+(Since $\Sigma$ is a cone, plotting it from $R$ near $0$ up to some $R_{\max}$
+in a single view would make it look like a thin flared blade rather than a
+curved sheet, an artifact of showing many scales at once rather than a
+feature of the surface itself; Figure~\ref{fig:euler-surface} instead zooms
+into one scale.)
 
 \begin{figure}[htb]
   \centering
   \includegraphics[width=0.72\linewidth]{figures/euler_surface}
-  \caption{The physical Euler surface $d=\sqrt{R(R-2r)}$ over
-    $\{R>0,\,0<r\le R/2\}$, with $600$ sampled triangles (black dots) lying
-    exactly on it. The red line is the equilateral edge $r=R/2$, $d=0$.}
+  \caption{The physical Euler surface $d=\sqrt{R(R-2r)}$, shown over a
+    representative local patch of $R$-values, with sampled triangles (white
+    dots) lying exactly on it. The red line is the equilateral edge
+    $r=R/2$, $d=0$.}
   \label{fig:euler-surface}
 \end{figure}
 
@@ -339,6 +345,22 @@ $\mu_{\mathrm{null}}$ and $\sigma_{\mathrm{null}}$ are computed separately
 for each candidate triple, from data with the same units, scale, and
 marginal shape as the real sample, this comparison is self-calibrating and
 needs no triple-independent threshold.
+
+Figure~\ref{fig:null-distribution} shows this construction on $(R,r,d)$
+itself, with $m=20$ reshufflings: $L_{\mathrm{real}}$ sits well to the left
+of every one of the $m$ null losses, and in particular below the
+$\mu_{\mathrm{null}}-\sigma_{\mathrm{null}}$ edge of the shaded band.
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=0.85\linewidth]{figures/null_distribution}
+  \caption{The null distribution of reconstruction loss for $(R,r,d)$: $m=20$
+    column-shuffled losses $L'_1,\dots,L'_m$ (red), their mean
+    $\mu_{\mathrm{null}}$ and $\pm1$ standard-deviation band (dashed line,
+    shaded), and the real loss $L_{\mathrm{real}}$ (blue), which lands
+    clearly below the entire null cluster.}
+  \label{fig:null-distribution}
+\end{figure}
 
 \section{The pipeline}
 \label{sec:pipeline}
