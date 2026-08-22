@@ -3,10 +3,10 @@
 Euler's relation, d^2 = R^2 - 2Rr (d = distance between incenter and
 circumcenter), is a genuine functional dependency among exactly three
 derived scalars. This script is a sanity check on the method itself: run the
-autoencoder/permutation-null detector on (R, r, d), confirm it is flagged as
-a strong candidate, fit an explicit polynomial relation, and check it against
-Euler's formula. It also plots the raw 3D point cloud of (R, r, d) next to a
-column-shuffled null, to make the "surface vs. volume" argument visible.
+autoencoder/permutation-null detector on (R, r, d) and confirm it is flagged
+as a strong candidate. It also plots the raw 3D point cloud of (R, r, d)
+next to a column-shuffled null, to make the "surface vs. volume" argument
+visible.
 
 Run with:
     poetry run python -m triangle_relations.discovery.verify_euler_relation
@@ -25,7 +25,6 @@ from triangle_relations.discovery.scalar_relations import (
     search_three_scalar_relations,
     shuffle_columns,
 )
-from triangle_relations.discovery.symbolic import PolynomialRelation, fit_polynomial_relation
 
 logger = logging.getLogger(__name__)
 
@@ -54,13 +53,9 @@ def main() -> None:
 
     _check_ground_truth(data)
     result = _run_detection(names, data)
-    relation = _fit_symbolic_relation(names, data)
     _plot_surface_vs_volume(data, names, rng)
 
-    logger.info(
-        "summary: ratio=%.4f z=%.2f recovered relation (= 0): %s",
-        result.ratio, result.z_score, relation.as_expr(),
-    )
+    logger.info("summary: ratio=%.4f z=%.2f", result.ratio, result.z_score)
 
 
 def _check_ground_truth(data: np.ndarray) -> None:
@@ -90,15 +85,6 @@ def _run_detection(names: list[str], data: np.ndarray) -> RelationResult:
     logger.info("  z-score                   : %.2f", result.z_score)
     logger.info("  ratio (real / null_mean)  : %.4f  (small = strong relation)", result.ratio)
     return result
-
-
-def _fit_symbolic_relation(names: list[str], data: np.ndarray) -> PolynomialRelation:
-    """Fit and log the explicit degree-2 polynomial relation among ``names``."""
-    logger.info("[symbolic fit] searching for a degree-2 polynomial relation...")
-    relation = fit_polynomial_relation(data, tuple(names), max_degree=2)
-    logger.info("  smallest/largest singular value ratio: %.2e", relation.singular_value_ratio)
-    logger.info("  recovered relation (= 0): %s", relation.as_expr())
-    return relation
 
 
 def _trim_outliers(X: np.ndarray, q: float = 0.97) -> np.ndarray:

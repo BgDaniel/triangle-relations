@@ -56,43 +56,32 @@ collapses onto a 2D surface far more than a permutation-shuffled null predicts:
    autoencoder compresses the real data far better than it compresses the
    shuffled control, i.e. a strong candidate functional relation.
 
+This is meant to be run from an IDE rather than the command line: open
+`scripts/discover_scalar_relations.py` and edit the configuration constants
+at the top (`N_SAMPLES`, `SCALAR_NAMES`, `N_JOBS`, `OUTPUT_CSV`, ...), then run:
+
 ```
-poetry run python scripts/discover_scalar_relations.py --n-samples 1500 --top 15
-```
-
-Useful flags: `--scalars a,b,c,...` to restrict the search space (the full
-search is combinatorial and can be slow), `--n-jobs -1` to parallelize across
-cores (default), `--output results.csv` to dump the full ranking.
-
-Once a candidate triple looks promising, fit an explicit polynomial relation:
-
-```python
-from triangle_relations.discovery.sampling import build_scalar_dataset
-from triangle_relations.discovery.symbolic import fit_polynomial_relation
-import numpy as np
-
-rng = np.random.default_rng(0)
-names, data = build_scalar_dataset(
-    500, rng, scalar_names=["circumradius", "inradius", "dist_circumcenter__incenter"]
-)
-relation = fit_polynomial_relation(data, tuple(names), max_degree=2)
-print(relation.as_expr())   # -> recovers Euler's relation up to sign/scale
+poetry run python scripts/discover_scalar_relations.py
 ```
 
-This fits a linear combination of monomials (up to `max_degree`) that
-vanishes on the sampled data, via the smallest singular vector of the
-(normalized) monomial design matrix — exactly how Euler's relation shows up
-as a linear dependency among `{R^2, Rr, d^2}`.
+`SCALAR_NAMES` restricts the search space (the full search is combinatorial
+and can be slow); `OUTPUT_CSV` optionally dumps the full ranking to a file.
+
+The autoencoder is used purely as a *detector*: it only tells you whether a
+triple of quantities is suspiciously dependent, not what the relation
+actually is (the trained network is not an interpretable formula). Going
+from "there's a relation" to an explicit closed form like
+`d^2 = R^2 - 2Rr` is a separate problem (symbolic regression) that this
+project does not currently attempt.
 
 ### Worked example: rediscovering Euler's relation
 
-`triangle_relations/discovery/verify_euler_relation.py` runs the entire
-pipeline above on `(circumradius, inradius, dist_circumcenter__incenter)` as
-a validation that the method actually recovers a *known* theorem: it checks
-the detection ratio/z-score, fits the polynomial relation (recovering
-`d^2 = R^2 - 2Rr` up to sign/scale), and saves a 3D scatter plot contrasting
-the real data (confined to a thin 2D surface) against the shuffled null
-(filling the 3D volume).
+`triangle_relations/discovery/verify_euler_relation.py` runs the detection
+pipeline on `(circumradius, inradius, dist_circumcenter__incenter)` as a
+validation that the method actually recovers a *known* theorem: it checks
+the detection ratio/z-score, and saves a 3D scatter plot contrasting the
+real data (confined to a thin 2D surface) against the shuffled null (filling
+the 3D volume).
 
 ```
 poetry run python -m triangle_relations.discovery.verify_euler_relation
@@ -100,18 +89,24 @@ poetry run python -m triangle_relations.discovery.verify_euler_relation
 
 ### Theory
 
-`docs/theory.tex` explains the reasoning in more depth: why a triangle's
-three degrees of freedom make a relation among *four* derived scalars
-guaranteed by dimension counting but a relation among exactly *three* a
-genuine (and rare) algebraic coincidence, and how the autoencoder + shuffled
-null + polynomial null-space steps each fit into detecting and confirming
-one. Compile it with a LaTeX distribution (e.g. `pdflatex theory.tex`) for a
-properly typeset PDF. `docs/theory.pdf` is a plain fallback rendering (via
-`docs/render_theory_pdf.py`, using matplotlib only) for reading without a
-LaTeX install; regenerate it with:
+`docs/discovering_triangle_relations.tex` explains the reasoning in more
+depth: why a triangle's three degrees of freedom make a relation among
+*four* derived scalars guaranteed by dimension counting but a relation among
+exactly *three* a genuine (and rare) algebraic coincidence, and how the
+autoencoder + shuffled-null steps fit together to detect one — including a
+mathematically precise treatment of the detector itself (a sufficiency and
+a necessity proposition, with proof sketches, characterizing exactly when
+reconstruction error goes to zero vs. stays bounded away from it). It's a
+standard `amsart` (AMS journal article) document with a proper abstract,
+MSC classification, and keywords, set in `newtxtext`/`newtxmath` (a
+Times-like math/text pairing).
+`docs/discovering_triangle_relations.pdf` is the compiled PDF, checked into
+the repo so it's viewable without a LaTeX install. To recompile it after
+editing the `.tex` (e.g. on Overleaf, or locally with any LaTeX
+distribution):
 
 ```
-poetry run python docs/render_theory_pdf.py
+pdflatex discovering_triangle_relations.tex
 ```
 
 ## Program 2 — incidence relations between derived points (planned)
