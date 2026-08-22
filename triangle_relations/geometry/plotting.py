@@ -12,12 +12,12 @@ def plot_triangle(
     show_centroid: bool = True,
     show_incenter: bool = True,
     show_circumcenter: bool = True,
-    show_orthocenter: bool = False,
-    show_steiner_foci: bool = False,
+    show_orthocenter: bool = True,
+    show_steiner_foci: bool = True,
     show_incircle: bool = True,
     show_circumcircle: bool = True,
     show_steiner_inellipse: bool = True,
-    show_euler_line: bool = False,
+    show_euler_line: bool = True,
     labels: bool = True,
 ):
     """Plot a triangle together with a selection of its derived objects.
@@ -93,3 +93,14 @@ def _plot_steiner_inellipse(ax, triangle, color, n_points: int = 200):
     unit_circle = r * np.column_stack([np.cos(theta), np.sin(theta)])
     ellipse = unit_circle @ M.T + t
     ax.plot(ellipse[:, 0], ellipse[:, 1], color=color, linewidth=1, zorder=2)
+
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
+    from triangle_relations.geometry.triangle import Triangle
+
+    sample = Triangle((0.5, 0.2), (4.0, 0.8), (1.5, 3.2))
+    plot_triangle(sample)
+    plt.title("Sample triangle with all derived objects")
+    plt.show()

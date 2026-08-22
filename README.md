@@ -24,8 +24,10 @@ t.steiner_inellipse_foci()
 t.all_scalars()         # dict of every registered scalar quantity
 t.all_points()          # dict of every registered derived point
 
-t.plot(show_orthocenter=True, show_steiner_foci=True, show_euler_line=True)
+t.plot()   # every derived object is shown by default; pass show_x=False to hide one
 ```
+
+Run `python -m triangle_relations.geometry.plotting` for a standalone demo on a sample triangle.
 
 Derived points (`Triangle.POINTS`): centroid, circumcenter, incenter, orthocenter,
 and the two foci of the Steiner inellipse (via Marden's theorem).
@@ -81,6 +83,36 @@ This fits a linear combination of monomials (up to `max_degree`) that
 vanishes on the sampled data, via the smallest singular vector of the
 (normalized) monomial design matrix — exactly how Euler's relation shows up
 as a linear dependency among `{R^2, Rr, d^2}`.
+
+### Worked example: rediscovering Euler's relation
+
+`triangle_relations/discovery/verify_euler_relation.py` runs the entire
+pipeline above on `(circumradius, inradius, dist_circumcenter__incenter)` as
+a validation that the method actually recovers a *known* theorem: it checks
+the detection ratio/z-score, fits the polynomial relation (recovering
+`d^2 = R^2 - 2Rr` up to sign/scale), and saves a 3D scatter plot contrasting
+the real data (confined to a thin 2D surface) against the shuffled null
+(filling the 3D volume).
+
+```
+poetry run python -m triangle_relations.discovery.verify_euler_relation
+```
+
+### Theory
+
+`docs/theory.tex` explains the reasoning in more depth: why a triangle's
+three degrees of freedom make a relation among *four* derived scalars
+guaranteed by dimension counting but a relation among exactly *three* a
+genuine (and rare) algebraic coincidence, and how the autoencoder + shuffled
+null + polynomial null-space steps each fit into detecting and confirming
+one. Compile it with a LaTeX distribution (e.g. `pdflatex theory.tex`) for a
+properly typeset PDF. `docs/theory.pdf` is a plain fallback rendering (via
+`docs/render_theory_pdf.py`, using matplotlib only) for reading without a
+LaTeX install; regenerate it with:
+
+```
+poetry run python docs/render_theory_pdf.py
+```
 
 ## Program 2 — incidence relations between derived points (planned)
 

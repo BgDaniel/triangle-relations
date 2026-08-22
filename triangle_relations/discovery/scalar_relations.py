@@ -34,7 +34,7 @@ class RelationResult:
         return self.real_error / self.null_mean if self.null_mean > 0 else np.inf
 
 
-def _shuffle_columns(X: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+def shuffle_columns(X: np.ndarray, rng: np.random.Generator) -> np.ndarray:
     """Independently permute each column, destroying joint structure while
     preserving each quantity's own marginal distribution exactly."""
     X_shuffled = np.empty_like(X)
@@ -65,7 +65,7 @@ def _evaluate_triple(
 
     null_errors = []
     for _ in range(n_shuffles):
-        X_shuffled = _shuffle_columns(X, rng)
+        X_shuffled = shuffle_columns(X, rng)
         null_errors.append(
             reconstruction_error(
                 X_shuffled,

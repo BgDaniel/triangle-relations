@@ -1,0 +1,175 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+
+\title{Discovering Hidden Relations Among Triangle Invariants}
+\author{triangle-relations}
+\date{}
+
+\newcommand{\M}{\mathcal{M}}
+
+\begin{document}
+\maketitle
+
+\section{Setup: the moduli space of triangles}
+
+A triangle is specified by three points in $\mathbb{R}^2$, i.e.\ six real
+parameters. Every quantity we consider (area, perimeter, circumradius $R$,
+inradius $r$, distances between derived points, \dots) is built purely from
+the vertex coordinates and is invariant under rigid motions: translating or
+rotating the triangle does not change its area, its inradius, or the
+distance between its incenter and circumcenter. Translations (2 parameters)
+and rotations (1 parameter) form a 3-dimensional group acting on the
+6-dimensional space of vertex triples; quotienting it out leaves a
+$3$-dimensional moduli space $\M$ of triangle shapes up to congruence
+(reflection is a further discrete symmetry and does not change this
+dimension count). Concretely, $\M$ can be coordinatized by, e.g., the three
+side lengths $(a,b,c)$ subject to the triangle inequality.
+
+Every derived scalar quantity is a smooth function $f : \M \to \mathbb{R}$.
+Choosing $k$ such quantities gives a smooth map
+\[
+  F = (f_1, \dots, f_k) : \M \to \mathbb{R}^k .
+\]
+
+\section{Why relations among four or more quantities are not interesting}
+
+If $k > \dim \M = 3$, a generic smooth map from a 3-manifold into
+$\mathbb{R}^k$ has, as its image, an (at most) 3-dimensional submanifold of
+$\mathbb{R}^k$ — this is just the statement that embedding a 3-dimensional
+space into a higher-dimensional ambient space produces $k-3$ constraint
+equations for free, regardless of which $k$ functions were chosen, as long
+as they are not specially degenerate. Concretely, this image is cut out
+locally by $k-3$ independent equations $G_i(f_1,\dots,f_k) = 0$. So finding
+\emph{some} relation among four or more triangle invariants is guaranteed by
+dimension counting alone. It says nothing specific about triangle geometry —
+it would happen for essentially any four smooth functions on any
+3-dimensional space of objects.
+
+\section{Why a relation among exactly three quantities is special}
+
+If $k = \dim \M = 3$ exactly, the situation is qualitatively different. A
+generic smooth map $F : \M \to \mathbb{R}^3$ is, at a generic point, a local
+diffeomorphism: its Jacobian $DF$ has full rank 3, and as the triangle shape
+ranges over an open subset of $\M$, the triple $(f_1,f_2,f_3)$ sweeps out a
+full 3-dimensional \emph{open region} of $\mathbb{R}^3$ — a solid blob, not a
+surface. This is again a genericity statement: for an arbitrary hand-picked
+triple of triangle invariants, there is no a priori reason for $DF$ to be
+rank-deficient anywhere.
+
+An \emph{exact} relation $G(f_1,f_2,f_3) = 0$ holding on all of $\M$ is
+therefore equivalent to $DF$ having rank $\le 2$ everywhere: the image
+collapses onto a 2-dimensional surface embedded in $\mathbb{R}^3$, instead of
+filling out a full 3-dimensional region. That is not generic — it is a
+genuine algebraic coincidence, exactly the kind of fact that constitutes a
+classical theorem. Euler's relation
+\[
+  d^2 = R^2 - 2Rr
+\]
+(where $d$ is the distance between the incenter and circumcenter) is exactly
+a statement that the Jacobian of $(R, r, d)$ as functions of triangle shape
+has rank $\le 2$ everywhere, collapsing three ostensibly independent
+quantities onto a single surface. This is the precise sense in which
+searching for relations among exactly three derived scalars — and not four —
+is the search for something structurally new.
+
+\section{Detecting rank-deficiency with a bottleneck autoencoder}
+
+Given a candidate triple $(f_1,f_2,f_3)$, we want a numerical test for
+whether the induced map $F : \M \to \mathbb{R}^3$ has full rank 3 generically
+(data fills a 3D region) or is everywhere rank $\le 2$ (data is confined to a
+2D surface). We sample many random triangles — many points of $\M$ — and
+evaluate $(f_1,f_2,f_3)$ on each, producing a point cloud
+$X \subset \mathbb{R}^3$.
+
+An autoencoder with a 2-dimensional latent bottleneck, an encoder
+$e : \mathbb{R}^3 \to \mathbb{R}^2$ and decoder $d : \mathbb{R}^2 \to
+\mathbb{R}^3$ trained to minimize $\mathbb{E}\, \| d(e(x)) - x \|^2$ over the
+sample, is exactly searching for the best rank-2 (nonlinear) approximation to
+the data:
+\begin{itemize}
+  \item If the data truly lies on a 2-dimensional surface (an exact relation
+    holds), a 2-dimensional latent code is not actually a bottleneck for it —
+    a sufficiently expressive encoder/decoder pair can in principle drive the
+    reconstruction error to (near) zero, since the encoder just needs to
+    learn a local chart of the surface and the decoder its inverse.
+  \item If the data genuinely fills an open 3-dimensional region, no
+    continuous map that factors through a 2-dimensional intermediate space
+    can reconstruct it without loss: an entire dimension worth of variation
+    is necessarily discarded. Reconstruction error is then bounded away from
+    zero, on the order of the data's own extent in the discarded direction.
+\end{itemize}
+
+This gives a clean signature: near-zero reconstruction error with a
+2-dimensional bottleneck is evidence for an (exact or near-exact) relation
+among the three chosen quantities; error comparable to the data's own scale
+is consistent with the generic, full-rank, no-relation case.
+
+\section{Calibrating ``near zero'' with a permutation null}
+
+An absolute error threshold is not meaningful across different triples of
+scalars: they differ in units, scale, and marginal shape, and — since all
+derived scalars are ultimately functions of the same three underlying
+triangle parameters — some triples are mildly correlated even without an
+exact relation. What is needed is a triple-specific baseline for ``no
+relation.''
+
+We construct a null sample $X'$ by independently permuting each of the three
+columns of $X$. This exactly preserves each $f_i$'s own one-dimensional
+marginal distribution while completely destroying the joint dependency
+between the three: each row of $X'$ combines values from unrelated triangle
+instances. Any real functional relation is annihilated by this shuffle.
+Training the same autoencoder architecture on $X'$ (repeated a few times)
+estimates the reconstruction error one should expect for three quantities
+with these particular marginals but \emph{no} shared structure. Comparing the
+real error against this null's mean and standard deviation via a $z$-score
+(or the ratio of the two) yields a self-calibrated significance measure that
+is robust to the units and distribution of whichever three scalars are being
+tested. A small ratio — real error far below the null — is the fingerprint
+of an unexpected relation among exactly three quantities.
+
+\section{From detection to an explicit formula}
+
+The autoencoder step is a screening tool: it flags which triples are
+suspicious, not what the relation says. Once a triple is flagged, we look for
+an explicit closed form by fitting a polynomial identity. We build a
+dictionary of monomials in $(f_1,f_2,f_3)$ up to some degree $D$ (for $D=2$:
+$1, f_1, f_2, f_3, f_1^2, f_1 f_2, f_1 f_3, f_2^2, f_2 f_3, f_3^2$), evaluate
+them on the sampled data to form a design matrix $\Phi$ (samples $\times$
+monomials, each column rescaled to comparable variance), and look for a
+linear combination of its columns that vanishes on every sample. Such a
+combination is the right singular vector belonging to the smallest singular
+value of $\Phi$.
+
+Applied to $(R, r, d)$ at degree 2, this recovers — up to overall scale and
+sign, exactly the ambiguity inherent in reading off a null vector —
+\[
+  d^2 - R^2 + 2Rr \;\approx\; 0
+\]
+on every sampled triangle: Euler's relation, found purely by sampling random
+triangles and asking a null-space question, with no prior knowledge of the
+formula. A very small trailing singular value (relative to the largest) is
+itself independent confirmation that an exact low-degree polynomial relation
+exists, complementary to the autoencoder's nonlinear, degree-agnostic
+detector.
+
+\section{The full pipeline}
+
+\begin{enumerate}
+  \item Enumerate candidate triples of derived scalar quantities.
+  \item For each triple, sample random triangles once, train a 2-bottleneck
+    autoencoder, and compare its held-out reconstruction error to a
+    column-shuffled null (several repeats).
+  \item Rank triples by how much better the real data compresses than its
+    null counterpart (small ratio $=$ strong candidate).
+  \item For top candidates, fit a low-degree polynomial null-space relation
+    to recover an explicit closed form, and validate that it holds (residual
+    $\approx 0$) on fresh samples.
+\end{enumerate}
+
+\texttt{triangle\_relations/discovery/verify\_euler\_relation.py} runs this
+exact pipeline on $(R, r, d)$ as a worked example, confirming it rediscovers
+Euler's relation end to end.
+
+\end{document}
