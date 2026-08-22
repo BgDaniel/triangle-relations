@@ -1,0 +1,28 @@
+[project]
+name = "triangle-relations"
+version = "0.1.0"
+description = "A Python-based computational geometry project for discovering and analyzing hidden relationships among triangle-derived quantities, combining numerical methods, linear algebra, geometric coincidence detection, and machine learning such as autoencoders."
+authors = [
+    {name = "daniel.bergermat@t-online.de"}
+]
+license = {text = "MIT License"}
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "numpy (>=2.5.2,<3.0.0)",
+    "scipy (>=1.18.1,<2.0.0)",
+    "sympy (>=1.14.0,<2.0.0)",
+    "scikit-learn (>=1.9.0,<2.0.0)",
+    "matplotlib (>=3.11.1,<4.0.0)",
+    "joblib (>=1.5.3,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.1.1,<10.0.0)"
+]
