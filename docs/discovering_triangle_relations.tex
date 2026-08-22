@@ -4,6 +4,7 @@
 \usepackage[osf]{mathpazo}
 \usepackage{amsmath,amssymb,mathtools}
 \usepackage{microtype}
+\usepackage{graphicx}
 \usepackage[a4paper,margin=1.3in]{geometry}
 \usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black]{hyperref}
 
@@ -62,33 +63,108 @@ relation.
 
 A triangle, up to translation and rotation, has three degrees of freedom
 (e.g.\ its three side lengths $a,b,c$); write $\M$ for this moduli space,
-$\dim\M=3$. Every derived scalar (area, $R$, $r$, distances between derived
-points, \dots) is a smooth function $f:\M\to\mathbb R$, and $k$ of them give
-a map $F=(f_1,\dots,f_k):\M\to\mathbb R^k$. Call a property of $F$
-\emph{generic} if it holds outside a closed, measure-zero exceptional set of
-choices of the $f_i$.
+$\dim\M=3$. Every derived scalar --- area, the circumradius $R$ (the radius
+of the circle through all three vertices), the inradius $r$ (the radius of
+the circle inscribed in the triangle), distances between derived points,
+\dots --- is a smooth function $f:\M\to\mathbb R$, and $k$ of them give a map
+$F=(f_1,\dots,f_k):\M\to\mathbb R^k$. Call a property of $F$ \emph{generic}
+if it holds outside a closed, measure-zero exceptional set of choices of the
+$f_i$; for instance, the Jacobian $DF(p)$ (the $k\times3$ matrix of partial
+derivatives $(\partial f_i/\partial x_j)$ in local coordinates on $\M$ at a
+point $p$) generically has the largest rank its shape allows, $\min(k,3)$,
+since failing to do so is a closed, codimension-$\ge1$ condition on the
+$f_i$.
 
-If $k>3$, a generic $F$ has, as its image, an (at most) $3$-dimensional
-submanifold of $\mathbb R^k$: embedding a $3$-dimensional space into a
-higher-dimensional one produces $k-3$ constraint equations \emph{for free},
-regardless of which $f_i$ were chosen. So a relation among four or more
-triangle invariants says nothing specific about triangle geometry.
+If $k>3$, take a point $p$ where $DF(p)$ has the generic rank $3$, i.e.\
+$F$ is an immersion at $p$: by the constant rank theorem, in suitable local
+coordinates near $p$ and $F(p)$, $F$ looks like the standard inclusion
+$\mathbb R^3\hookrightarrow\mathbb R^k$. Consequently the image of a small
+neighborhood of $p$ is a smooth $3$-dimensional submanifold, cut out there
+by $k-3$ independent equations $G_i(f_1,\dots,f_k)=0$ in the $k-3$
+coordinate directions transverse to it. These $k-3$ local relations arise
+from dimension counting alone, \emph{for free}, regardless of which $f_i$
+were chosen; a relation among four or more triangle invariants therefore
+says nothing specific about triangle geometry.
 
-If $k=3$, recall that the Jacobian $DF(p)$ is the $3\times3$ matrix of
-partial derivatives $(\partial f_i/\partial x_j)$ in local coordinates on
-$\M$, and $F$ is a \emph{local diffeomorphism} at $p$ (a smooth bijection
-near $p$ with smooth inverse) exactly when $DF(p)$ is invertible. Generically
-$DF$ has full rank $3$, and $(f_1,f_2,f_3)$ sweeps out an open
-\emph{$3$-dimensional} region of $\mathbb R^3$ --- a solid blob, not a surface.
-An \emph{exact} relation $G(f_1,f_2,f_3)=0$ is equivalent to $DF$ having rank
-$\le2$ everywhere, collapsing the image onto a $2$-dimensional surface: not
-generic, a genuine algebraic coincidence. Euler's relation
+If $k=3$, recall $F$ is a \emph{local diffeomorphism} at $p$ (a smooth
+bijection near $p$ with smooth inverse) exactly when $DF(p)$ is invertible,
+by the inverse function theorem. Generically $DF$ has full rank $3$, and
+near such a point $(f_1,f_2,f_3)$ sweeps out an open subset of $\mathbb
+R^3$ with nonempty interior --- a genuine $3$-dimensional volume, not a
+lower-dimensional surface. An \emph{exact} relation $G(f_1,f_2,f_3)=0$
+holding identically is equivalent to $DF$ having rank $\le2$ everywhere,
+collapsing the image onto a $2$-dimensional surface: not generic, a genuine
+algebraic coincidence. Euler's relation
 \begin{equation}
   d^2=R^2-2Rr
 \end{equation}
-($d$ = incenter-to-circumcenter distance) is exactly such a statement about
-$(R,r,d)$. This is the sense in which a relation among exactly three
-invariants --- not four --- is structurally new.
+(where $d$ is the incenter-to-circumcenter distance) is exactly such a
+statement about $(R,r,d)$. This is the sense in which a relation among
+exactly three invariants --- not four --- is structurally new.
+
+Is the solution set of Euler's relation actually a submanifold, or does it
+have edges or cusps? Generically the former, with one exception.
+
+\begin{proposition}[Smoothness of the Euler surface]\label{prop:eulersmooth}
+Let $\Sigma=\{(R,r,d)\in\mathbb R^3 : d^2=R^2-2Rr\}$. Then $\Sigma$ is a
+smooth (real-analytic) embedded $2$-dimensional submanifold of $\mathbb R^3$
+away from the single point $0=(0,0,0)$, which is a genuine conical
+singularity: writing $u=R-r$, Euler's relation becomes $u^2=r^2+d^2$, the
+equation of a standard double cone with vertex at $u=r=d=0$. No actual
+(nondegenerate) triangle reaches this vertex, since every triangle has
+$R>0$ strictly, so the physically realized part of $\Sigma$ is smooth
+throughout. It does have one edge --- not a cusp --- along the equilateral
+locus $r=R/2$, $d=0$, where Euler's inequality $R\ge2r$ becomes an equality.
+\end{proposition}
+
+\begin{proof}
+The gradient of $G(R,r,d)=R^2-2Rr-d^2$ is $\nabla G=(2R-2r,-2R,-2d)$, which
+vanishes only when $R=r$, $R=0$, $d=0$ simultaneously, i.e.\ only at the
+origin (which does lie on $\Sigma$, since $G(0,0,0)=0$). By the implicit
+function theorem, $\Sigma$ is a smooth submanifold at every point where
+$\nabla G\ne0$, hence everywhere except possibly the origin. Completing the
+square, $G=(R-r)^2-r^2-d^2$, so with $u=R-r$, $\Sigma=\{u^2=r^2+d^2\}$: the
+standard double cone. A punctured neighborhood of its vertex $u=r=d=0$ on
+$\Sigma$ has two connected components (one per nappe, since $u=0$ forces
+$r=d=0$ too), unlike a punctured disk in $\mathbb R^2$; so the vertex is not
+even a topological manifold point, confirming it is a genuine singularity.
+
+For an actual triangle, $R>0$ always (a nondegenerate triangle has positive
+circumradius), so the physically realized points of $\Sigma$ never coincide
+with the singular vertex. Writing $d=\sqrt{R(R-2r)}$ (the nonnegative root,
+since $d$ is a distance) over the physical domain $\{R>0,\,0<r\le R/2\}$ ---
+using Euler's inequality $R\ge2r$, which always holds for a genuine triangle
+--- exhibits the physical surface as a smooth graph, with an edge exactly at
+$r=R/2$ ($d=0$, the equilateral case). Viewed on the full cone $\Sigma$,
+this locus is an ordinary smooth curve: $\nabla G\ne0$ there too, e.g.\ at
+$(R,R/2,0)$ with $R>0$, $\nabla G=(R,-2R,0)\ne0$. It becomes an edge of the
+\emph{physical} surface only because the mirror branch $d<0$ --- equally
+part of $\Sigma$, but physically meaningless --- is discarded.
+\end{proof}
+
+Figure~\ref{fig:euler-surface} shows the physical surface together with
+$600$ sampled triangles, which fall exactly on it, with the equilateral edge
+marked in red; Figure~\ref{fig:euler-cone} shows the full variety $\Sigma$,
+both branches, meeting at the singular vertex.
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=0.72\linewidth]{figures/euler_surface}
+  \caption{The physical Euler surface $d=\sqrt{R(R-2r)}$ over
+    $\{R>0,\,0<r\le R/2\}$, with $600$ sampled triangles (black dots) lying
+    exactly on it. The red line is the equilateral edge $r=R/2$, $d=0$.}
+  \label{fig:euler-surface}
+\end{figure}
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=0.72\linewidth]{figures/euler_cone}
+  \caption{Both algebraic branches of $d^2=R^2-2Rr$: the physical branch
+    $R=r+\sqrt{r^2+d^2}$ (green) and the unphysical branch
+    $R=r-\sqrt{r^2+d^2}\le0$ (gray), meeting only at the singular vertex
+    $(R,r,d)=(0,0,0)$.}
+  \label{fig:euler-cone}
+\end{figure}
 
 \section{The autoencoder detector}
 \label{sec:autoencoder}
@@ -105,17 +181,19 @@ whole dimension, so error stays bounded away from $0$.
 
 \subsection{A precise statement}
 
-Let $P$ be the law of $(f_1,f_2,f_3)(T)$ and $X=\operatorname{supp}(P)$. By a
-\emph{two-layer perceptron of width $h$} we mean
+Let $P$ be the law of $(f_1,f_2,f_3)(T)$ and $X=\operatorname{supp}(P)$. Fix
+input and output dimensions $p,q\ge1$ (for us, always $p,q\in\{2,3\}$). By a
+\emph{two-layer perceptron of width $h$} we mean a map
+$N:\mathbb R^p\to\mathbb R^q$ of the form
 $N(x)=W_2\,\sigma(W_1x+b_1)+b_2$, with $W_1\in\mathbb R^{h\times p}$,
 $b_1\in\mathbb R^h$, $W_2\in\mathbb R^{q\times h}$, $b_2\in\mathbb R^q$
 trainable and $\sigma=\tanh$ applied componentwise; write
-$\mathcal N_h(\mathbb R^p,\mathbb R^q)$ for the class of all such maps.
-Recall $g$ is \emph{$K$-Lipschitz} if $\|g(x)-g(y)\|\le K\|x-y\|$; since
-$\tanh$ is $1$-Lipschitz, every two-layer perceptron is Lipschitz, with
-constant controlled by $\|W_1\|,\|W_2\|$. Train
-$e\in\mathcal N_h(\mathbb R^3,\mathbb R^2)$, $d\in\mathcal
-N_h(\mathbb R^2,\mathbb R^3)$ to minimize
+$\mathcal N_h(\mathbb R^p,\mathbb R^q)$ for the class of all such maps
+$\mathbb R^p\to\mathbb R^q$. Recall $g$ is \emph{$K$-Lipschitz} if
+$\|g(x)-g(y)\|\le K\|x-y\|$; since $\tanh$ is $1$-Lipschitz, every two-layer
+perceptron is Lipschitz, with constant controlled by $\|W_1\|,\|W_2\|$.
+Train an \emph{encoder} $e\in\mathcal N_h(\mathbb R^3,\mathbb R^2)$ and a
+\emph{decoder} $d\in\mathcal N_h(\mathbb R^2,\mathbb R^3)$ to minimize
 $L(e,d)=\mathbb E_{x\sim P}\|d(e(x))-x\|^2$.
 
 \begin{proposition}[Sufficiency]\label{prop:suff}
@@ -135,6 +213,17 @@ $\sup_{x\in K}\|N(x)-\varphi(x)\|<\delta$. Approximating $\varphi$ on $X$ and
 $\psi$ on $\varphi(X)$ gives $e,d$ with $\sup_{x\in X}\|d(e(x))-x\|\to0$,
 hence $L(e,d)\to0$.
 \end{proof}
+
+In plain terms: if $(f_1,f_2,f_3)$ really do satisfy an exact relation, a
+large enough autoencoder reconstructs them essentially perfectly, however
+the relation happens to curve through $\mathbb R^3$ --- the encoder just
+learns to read off a valid pair of local coordinates on that curved surface,
+and the decoder learns to invert them. The next proposition is the converse:
+without such a relation, no autoencoder of bounded complexity can do better
+than some fixed, positive error, no matter how it is trained. ``Bounded
+complexity'' here means a bound on the Lipschitz constant $K$ of $e$ and
+$d$ (roughly, how fast their outputs can change relative to their inputs);
+we explain right after the proof why this qualifier is unavoidable.
 
 \begin{proposition}[Necessity, at bounded capacity]\label{prop:nec}
 Fix $K>0$. Recall $P$ is \emph{absolutely continuous} (w.r.t.\ Lebesgue
@@ -174,24 +263,82 @@ Propositions~\ref{prop:suff} and \ref{prop:nec} say that, at any fixed,
 regularized capacity, reconstruction error going to $0$ versus staying
 bounded away from it is decided entirely by whether $(f_1,f_2,f_3)$ satisfy
 an exact relation --- the theoretical content behind the detection rule used
-throughout.
+throughout. Figure~\ref{fig:surface-vs-volume} shows this dichotomy on the
+actual triple $(R,r,d)$.
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=\linewidth]{figures/euler_relation_check}
+  \caption{The real triple $(R,r,d)$ (left, $1000$ sampled triangles)
+    collapses onto a thin $2$-dimensional surface, as
+    Proposition~\ref{prop:suff} predicts; independently shuffling each
+    column (right) destroys the relation, and the same points fill an open
+    $3$-dimensional region, as Proposition~\ref{prop:nec} predicts.}
+  \label{fig:surface-vs-volume}
+\end{figure}
 
 \section{Calibration via a permutation null}
 \label{sec:null}
 
-An absolute error threshold is not meaningful across triples: they differ in
-units and scale, and since all derived scalars are functions of the same
-three triangle parameters, some triples correlate mildly without an exact
-relation. We build a null $X'$ by independently permuting each column of
-$X$, which preserves each $f_i$'s marginal while destroying the joint
-dependency. Writing $L_{\mathrm{real}}$ and $\mu_{\mathrm{null}},
-\sigma_{\mathrm{null}}$ for the real and (repeated) null reconstruction
-risk, we compare via the $z$-score
+Propositions~\ref{prop:suff} and \ref{prop:nec} describe an idealized limit
+($h\to\infty$, exact expectations); in practice we train one finite network
+on one finite sample, and its reconstruction loss $L_{\mathrm{real}}$ is
+never exactly $0$ or exactly the theoretical floor $c$ --- it is a single
+noisy number. An absolute threshold on $L_{\mathrm{real}}$ (``flag it as
+dependent if the loss is below $0.01$'', say) is therefore not meaningful:
+different triples of scalars differ in units and scale, network training is
+itself noisy, and, since all derived scalars are functions of the same
+three underlying triangle parameters, even functionally \emph{independent}
+triples can be mildly correlated and so reconstruct a bit better than one
+might naively expect. What we need is not one global cutoff but a
+baseline for ``no relation'' calibrated separately for each triple.
+
+We obtain that baseline by destroying exactly the joint structure between
+the three scalars while leaving everything else about the data unchanged.
+Concretely, write the sample as a matrix $X\in\mathbb R^{n\times3}$, one row
+per sampled triangle. Form a \emph{shuffled} copy $X'$ by independently and
+uniformly permuting the $n$ entries within each of the three columns
+(a different random permutation per column). Each column of $X'$ is some
+reordering of the corresponding column of $X$, so it has exactly the same
+values, and hence the same one-dimensional marginal distribution, as
+before; but the pairing \emph{across} columns is now uniformly random, so
+whatever functional relationship held between $f_1,f_2,f_3$ in the real
+data has been destroyed. Training the same encoder/decoder architecture on
+$X'$ therefore measures how well an autoencoder can compress three
+quantities that merely share these marginal distributions but have no
+functional relationship at all --- precisely the situation of
+Proposition~\ref{prop:nec}.
+
+We repeat the shuffle-and-train step $m$ times (an independent random
+reshuffling of $X$ each time), obtaining $m$ null reconstruction losses
+$L'_1,\dots,L'_m$, and record their sample mean and sample standard
+deviation,
+\begin{equation}
+  \mu_{\mathrm{null}}=\frac1m\sum_{i=1}^m L'_i,
+  \qquad
+  \sigma_{\mathrm{null}}=\left(\frac1{m-1}\sum_{i=1}^m
+    (L'_i-\mu_{\mathrm{null}})^2\right)^{1/2}.
+\end{equation}
+These summarize the null distribution of reconstruction loss for this
+particular triple's marginals: $\mu_{\mathrm{null}}$ is its typical value
+under ``no relation'', and $\sigma_{\mathrm{null}}$ is how much that value
+fluctuates from one reshuffling (and training run) to the next. We compare
+the real loss to this null distribution via the standard $z$-score,
 \begin{equation}
   z=\frac{\mu_{\mathrm{null}}-L_{\mathrm{real}}}{\sigma_{\mathrm{null}}} ,
 \end{equation}
-or the ratio $L_{\mathrm{real}}/\mu_{\mathrm{null}}$: a large $z$ (small
-ratio) is the fingerprint of an unexpected relation.
+i.e.\ the number of null standard deviations by which the real loss falls
+below the null mean, or equivalently via the ratio
+$L_{\mathrm{real}}/\mu_{\mathrm{null}}$. A large $z$ (ratio close to $0$)
+means the real triple reconstructs far better than shuffled versions of
+itself typically do: the fingerprint of Proposition~\ref{prop:suff} taking
+over, and our evidence of an unexpected functional relation. A $z$ near $0$
+(ratio close to $1$) means the real data compresses no better than its own
+null, consistent with Proposition~\ref{prop:nec} and no relation. Because
+$\mu_{\mathrm{null}}$ and $\sigma_{\mathrm{null}}$ are computed separately
+for each candidate triple, from data with the same units, scale, and
+marginal shape as the real sample, this comparison is self-calibrating and
+needs no triple-independent threshold.
 
 \section{The pipeline}
 \label{sec:pipeline}
