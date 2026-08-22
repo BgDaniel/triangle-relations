@@ -344,12 +344,12 @@ class Triangle:
         "semiperimeter": lambda t: t.semiperimeter(),
         "circumradius": lambda t: t.circumradius(),
         "inradius": lambda t: t.inradius(),
-        "side_a": lambda t: t.side_a(),
-        "side_b": lambda t: t.side_b(),
-        "side_c": lambda t: t.side_c(),
-        "angle_A": lambda t: t.angle_A(),
-        "angle_B": lambda t: t.angle_B(),
-        "angle_C": lambda t: t.angle_C(),
+        #"side_a": lambda t: t.side_a(),
+        #"side_b": lambda t: t.side_b(),
+        #"side_c": lambda t: t.side_c(),
+        #"angle_A": lambda t: t.angle_A(),
+        #"angle_B": lambda t: t.angle_B(),
+        #"angle_C": lambda t: t.angle_C(),
     }
 
     @classmethod

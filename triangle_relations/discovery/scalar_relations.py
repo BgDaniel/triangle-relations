@@ -11,16 +11,45 @@ predict.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from dataclasses import dataclass
 from itertools import combinations
+from typing import Iterator
 
+import joblib
 import numpy as np
 from joblib import Parallel, delayed
+from tqdm.auto import tqdm
 
 from triangle_relations.discovery.autoencoder import reconstruction_error
 
 logger = logging.getLogger(__name__)
+
+
+@contextlib.contextmanager
+def _joblib_progress(total: int, desc: str) -> Iterator[tqdm]:
+    """Report :class:`joblib.Parallel` batch completions into a tqdm bar.
+
+    ``joblib.Parallel`` has no built-in progress callback; this patches its
+    batch-completion hook for the duration of the ``with`` block so each
+    finished triple (including ones run in other worker processes) ticks the
+    bar, then restores the original hook.
+    """
+    progress_bar = tqdm(total=total, desc=desc, unit="triple")
+
+    class _TqdmBatchCompletionCallback(joblib.parallel.BatchCompletionCallBack):
+        def __call__(self, *args, **kwargs):
+            progress_bar.update(self.batch_size)
+            return super().__call__(*args, **kwargs)
+
+    original_callback = joblib.parallel.BatchCompletionCallBack
+    joblib.parallel.BatchCompletionCallBack = _TqdmBatchCompletionCallback
+    try:
+        yield progress_bar
+    finally:
+        joblib.parallel.BatchCompletionCallBack = original_callback
+        progress_bar.close()
 
 
 @dataclass
@@ -148,6 +177,7 @@ def search_three_scalar_relations(
     min_std: float = 1e-9,
     n_jobs: int = 1,
     random_state: int | None = None,
+    progress: bool = True,
 ) -> list[RelationResult]:
     """Search all combinations of three scalars in ``data`` for a hidden relation.
 
@@ -171,6 +201,9 @@ def search_three_scalar_relations(
         Passed to :class:`joblib.Parallel`; ``-1`` uses all cores.
     random_state:
         Seed for the per-triple random seed sequence, for reproducibility.
+    progress:
+        Whether to display a tqdm progress bar over the combinations
+        searched (works with any ``n_jobs``, including parallel workers).
 
     Returns
     -------
@@ -189,7 +222,7 @@ def search_three_scalar_relations(
     seed_seq = np.random.SeedSequence(random_state)
     seeds = seed_seq.generate_state(len(triples))
 
-    results = Parallel(n_jobs=n_jobs)(
+    jobs = (
         delayed(_evaluate_triple)(
             data[:, [i, j, k]],
             (names[i], names[j], names[k]),
@@ -201,6 +234,12 @@ def search_three_scalar_relations(
         )
         for (i, j, k), seed in zip(triples, seeds)
     )
+
+    if progress:
+        with _joblib_progress(len(triples), desc="Searching scalar triples"):
+            results = Parallel(n_jobs=n_jobs)(jobs)
+    else:
+        results = Parallel(n_jobs=n_jobs)(jobs)
 
     logger.info("finished searching %d triple(s)", len(results))
     return sorted(results, key=lambda r: r.ratio)
