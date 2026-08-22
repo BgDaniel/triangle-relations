@@ -14,55 +14,94 @@ Run with:
 
 from __future__ import annotations
 
+import logging
+
 import numpy as np
 
 from triangle_relations.discovery.sampling import build_scalar_dataset
 from triangle_relations.discovery.scalar_relations import (
+    RelationResult,
     search_three_scalar_relations,
     shuffle_columns,
 )
-from triangle_relations.discovery.symbolic import fit_polynomial_relation
+from triangle_relations.discovery.symbolic import PolynomialRelation, fit_polynomial_relation
 
+logger = logging.getLogger(__name__)
+
+#: The scalar triple to test: Euler's relation is a functional dependency
+#: among exactly these three quantities.
 SCALAR_NAMES = ["circumradius", "inradius", "dist_circumcenter__incenter"]
+
+#: Number of random triangles to sample.
+N_SAMPLES = 1000
+
+#: Number of column-shuffled null datasets averaged per detection test.
+N_SHUFFLES = 5
+
+#: Autoencoder random restarts per training run (real data and each null).
+N_RESTARTS = 2
+
+#: Fixed seed, for reproducible sampling and null shuffles.
+SEED = 0
 
 
 def main() -> None:
-    rng = np.random.default_rng(0)
-    print(f"Sampling random triangles and evaluating {SCALAR_NAMES} ...")
-    names, data = build_scalar_dataset(1000, rng, scalar_names=SCALAR_NAMES)
-    R, r, d = data[:, 0], data[:, 1], data[:, 2]
+    """Run the full pipeline on Euler's relation and report + plot the result."""
+    rng = np.random.default_rng(SEED)
+    logger.info("sampling random triangles and evaluating %s", SCALAR_NAMES)
+    names, data = build_scalar_dataset(N_SAMPLES, rng, scalar_names=SCALAR_NAMES)
 
-    # Sanity check: Euler's relation should already hold exactly on our own
-    # geometry engine, independent of anything the discovery pipeline does.
-    residual = d**2 - (R**2 - 2 * R * r)
-    print(
-        f"\n[ground truth] max |d^2 - (R^2 - 2Rr)| over samples: "
-        f"{np.max(np.abs(residual)):.3e}  (should be ~0)"
+    _check_ground_truth(data)
+    result = _run_detection(names, data)
+    relation = _fit_symbolic_relation(names, data)
+    _plot_surface_vs_volume(data, names, rng)
+
+    logger.info(
+        "summary: ratio=%.4f z=%.2f recovered relation (= 0): %s",
+        result.ratio, result.z_score, relation.as_expr(),
     )
 
-    # --- Step 1: does the autoencoder/permutation-null test flag this triple? ---
-    print("\n[detection] running autoencoder vs. shuffled-null test on (R, r, d)...")
+
+def _check_ground_truth(data: np.ndarray) -> None:
+    """Log the residual of Euler's formula on our own geometry engine.
+
+    This is independent of the discovery pipeline: it should already be
+    (numerically) zero, since it is just re-evaluating a known formula on
+    the quantities our :class:`Triangle` class computes.
+    """
+    R, r, d = data[:, 0], data[:, 1], data[:, 2]
+    residual = d**2 - (R**2 - 2 * R * r)
+    logger.info(
+        "[ground truth] max |d^2 - (R^2 - 2Rr)| over samples: %.3e (should be ~0)",
+        np.max(np.abs(residual)),
+    )
+
+
+def _run_detection(names: list[str], data: np.ndarray) -> RelationResult:
+    """Run the autoencoder/permutation-null detector and log the result for (R, r, d)."""
+    logger.info("[detection] running autoencoder vs. shuffled-null test on (R, r, d)...")
     results = search_three_scalar_relations(
-        names, data, n_shuffles=5, n_restarts=2, n_jobs=1, random_state=0
+        names, data, n_shuffles=N_SHUFFLES, n_restarts=N_RESTARTS, n_jobs=1, random_state=SEED
     )
     result = results[0]
-    print(f"  real reconstruction error : {result.real_error:.4g}")
-    print(f"  null mean +- std          : {result.null_mean:.4g} +- {result.null_std:.2g}")
-    print(f"  z-score                   : {result.z_score:.2f}")
-    print(f"  ratio (real / null_mean)  : {result.ratio:.4f}  (small = strong relation)")
+    logger.info("  real reconstruction error : %.4g", result.real_error)
+    logger.info("  null mean +- std          : %.4g +- %.2g", result.null_mean, result.null_std)
+    logger.info("  z-score                   : %.2f", result.z_score)
+    logger.info("  ratio (real / null_mean)  : %.4f  (small = strong relation)", result.ratio)
+    return result
 
-    # --- Step 2: recover an explicit closed form ---
-    print("\n[symbolic fit] searching for a degree-2 polynomial relation...")
+
+def _fit_symbolic_relation(names: list[str], data: np.ndarray) -> PolynomialRelation:
+    """Fit and log the explicit degree-2 polynomial relation among ``names``."""
+    logger.info("[symbolic fit] searching for a degree-2 polynomial relation...")
     relation = fit_polynomial_relation(data, tuple(names), max_degree=2)
-    print(f"  smallest/largest singular value ratio: {relation.singular_value_ratio:.2e}")
-    print(f"  recovered relation (= 0): {relation.as_expr()}")
-
-    # --- Step 3: plots -- real data (a surface) vs. shuffled null (a volume) ---
-    _plot_surface_vs_volume(data, names, rng)
+    logger.info("  smallest/largest singular value ratio: %.2e", relation.singular_value_ratio)
+    logger.info("  recovered relation (= 0): %s", relation.as_expr())
+    return relation
 
 
 def _trim_outliers(X: np.ndarray, q: float = 0.97) -> np.ndarray:
-    """Boolean mask keeping rows within the q-quantile on every column.
+    """Return a boolean mask keeping rows within the ``q``-quantile on every column.
 
     Random-triangle sampling occasionally yields near-degenerate triangles
     with huge circumradius; a handful of such outliers would otherwise
@@ -74,6 +113,11 @@ def _trim_outliers(X: np.ndarray, q: float = 0.97) -> np.ndarray:
 
 
 def _plot_surface_vs_volume(data: np.ndarray, names: list[str], rng: np.random.Generator) -> None:
+    """Save (and show) a 3D scatter plot contrasting the real data against a shuffled null.
+
+    The real (R, r, d) triple should visibly collapse onto a thin 2D
+    surface, while the column-shuffled null should fill the full 3D volume.
+    """
     import matplotlib.pyplot as plt
 
     shuffled = shuffle_columns(data, rng)
@@ -100,9 +144,10 @@ def _plot_surface_vs_volume(data: np.ndarray, names: list[str], rng: np.random.G
     fig.suptitle("Euler's relation d^2 = R^2 - 2Rr as a 2D surface in (R, r, d)-space")
     fig.tight_layout()
     fig.savefig("euler_relation_check.png", dpi=150)
-    print("\nSaved figure to euler_relation_check.png")
+    logger.info("saved figure to euler_relation_check.png")
     plt.show()
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     main()

@@ -11,6 +11,7 @@ predict.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from itertools import combinations
 
@@ -19,9 +20,29 @@ from joblib import Parallel, delayed
 
 from triangle_relations.discovery.autoencoder import reconstruction_error
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class RelationResult:
+    """Outcome of testing one candidate triple of scalars for a hidden relation.
+
+    Attributes
+    ----------
+    names:
+        The three scalar names that were tested.
+    real_error:
+        Held-out autoencoder reconstruction error on the real sampled data.
+    null_mean:
+        Mean reconstruction error across ``n_shuffles`` column-shuffled null
+        datasets (see :func:`shuffle_columns`).
+    null_std:
+        Standard deviation of the null reconstruction errors.
+    z_score:
+        ``(null_mean - real_error) / null_std``; larger is stronger evidence
+        of a relation.
+    """
+
     names: tuple[str, str, str]
     real_error: float
     null_mean: float
@@ -30,13 +51,29 @@ class RelationResult:
 
     @property
     def ratio(self) -> float:
-        """real_error / null_mean; smaller means a stronger relation."""
+        """``real_error / null_mean``; smaller means a stronger relation."""
         return self.real_error / self.null_mean if self.null_mean > 0 else np.inf
 
 
 def shuffle_columns(X: np.ndarray, rng: np.random.Generator) -> np.ndarray:
-    """Independently permute each column, destroying joint structure while
-    preserving each quantity's own marginal distribution exactly."""
+    """Independently permute each column of ``X``.
+
+    This destroys any joint (functional) structure between the columns while
+    preserving each column's own one-dimensional marginal distribution
+    exactly, making it a well-calibrated "no relation" null for a given set
+    of quantities.
+
+    Parameters
+    ----------
+    X:
+        Data matrix of shape ``(n_samples, n_features)``.
+    rng:
+        A NumPy random number generator used for the per-column permutations.
+
+    Returns
+    -------
+    A new array of the same shape as ``X`` with each column independently shuffled.
+    """
     X_shuffled = np.empty_like(X)
     for j in range(X.shape[1]):
         X_shuffled[:, j] = rng.permutation(X[:, j])
@@ -53,6 +90,13 @@ def _evaluate_triple(
     test_size: float,
     seed: int,
 ) -> RelationResult:
+    """Run the detection test (real vs. shuffled-null reconstruction error) on one triple.
+
+    Note: when called under :class:`joblib.Parallel` with a process-based
+    backend (``n_jobs != 1``), log records emitted here are produced in the
+    worker process and may not reach handlers configured only in the main
+    process.
+    """
     rng = np.random.default_rng(seed)
 
     real_error = reconstruction_error(
@@ -78,6 +122,11 @@ def _evaluate_triple(
     null_mean = float(np.mean(null_errors))
     null_std = float(np.std(null_errors))
     z_score = (null_mean - real_error) / null_std if null_std > 0 else np.inf
+
+    logger.debug(
+        "%s: real_error=%.4g null_mean=%.4g null_std=%.2g z=%.2f",
+        names, real_error, null_mean, null_std, z_score,
+    )
 
     return RelationResult(
         names=names,
@@ -108,11 +157,20 @@ def search_three_scalar_relations(
         As returned by :func:`triangle_relations.discovery.sampling.build_scalar_dataset`.
     n_shuffles:
         Number of independent-column-shuffle nulls to average per triple.
+    hidden:
+        Autoencoder hidden-layer width; see :func:`~triangle_relations.discovery.autoencoder.reconstruction_error`.
+    n_restarts:
+        Autoencoder random restarts per training run; see
+        :func:`~triangle_relations.discovery.autoencoder.reconstruction_error`.
+    test_size:
+        Held-out fraction for measuring reconstruction error.
     min_std:
         Columns with standard deviation below this (near-constant scalars,
         e.g. degenerate quantities) are skipped.
     n_jobs:
-        Passed to :class:`joblib.Parallel`; -1 uses all cores.
+        Passed to :class:`joblib.Parallel`; ``-1`` uses all cores.
+    random_state:
+        Seed for the per-triple random seed sequence, for reproducibility.
 
     Returns
     -------
@@ -121,12 +179,13 @@ def search_three_scalar_relations(
     valid_idx = [j for j in range(data.shape[1]) if np.std(data[:, j]) > min_std]
     if len(valid_idx) < len(names):
         dropped = sorted(set(range(len(names))) - set(valid_idx))
-        print(
-            "warning: skipping near-constant scalars: "
-            + ", ".join(names[j] for j in dropped)
+        logger.warning(
+            "skipping near-constant scalars: %s",
+            ", ".join(names[j] for j in dropped),
         )
 
     triples = list(combinations(valid_idx, 3))
+    logger.info("searching %d combination(s) of 3 scalars out of %d", len(triples), len(valid_idx))
     seed_seq = np.random.SeedSequence(random_state)
     seeds = seed_seq.generate_state(len(triples))
 
@@ -143,4 +202,5 @@ def search_three_scalar_relations(
         for (i, j, k), seed in zip(triples, seeds)
     )
 
+    logger.info("finished searching %d triple(s)", len(results))
     return sorted(results, key=lambda r: r.ratio)
