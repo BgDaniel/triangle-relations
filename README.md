@@ -229,10 +229,24 @@ the triangle regardless of `d`; combining three such degree-equalized,
 positive scalars into a unit vector gives a point that depends only on
 shape, not size. A relation shows up as this map collapsing its image onto
 a curve rather than covering an open patch of the target sphere — detected
-the same way as Program 1 (a bottleneck autoencoder), but with a
-bottleneck of size 1 instead of 2, and no null. Degree-0 (scale-invariant)
-scalars, like angles, can't take part (`f**(1/0)` is undefined) and are
-excluded from this search automatically; Program 1 still covers them.
+the same way as Program 1 (a bottleneck autoencoder), but with a bottleneck
+of size 1 instead of 2, and no null. Degree-0 (scale-invariant) scalars,
+like angles, can't take part (`f**(1/0)` is undefined) and are excluded from
+this search automatically; Program 1 still covers them.
+
+The autoencoder's input and output are 2D coordinates in a chart of the
+target sphere, not its raw 3D embedding — matching the target's actual
+(2-dimensional) intrinsic dimension. Naive Euclidean distance *in that
+chart* is not a meaningful error, though: a stereographic chart distorts
+distances, worse away from its excluded point. So the loss instead maps the
+decoder's chart-coordinate output back through the (differentiable)
+*inverse* chart before comparing it to the true point — what gradient
+descent actually minimizes is the sphere's own chordal distance, not a
+chart-space stand-in for it. `scikit-learn`'s `MLPRegressor` (which Program
+1 uses) has no hook for a custom loss like this, so this part
+(`triangle_relations.discovery.sphere_autoencoder`) is a small hand-written
+PyTorch training loop instead — the one place this project needs PyTorch
+rather than scikit-learn.
 
 This is meant to be run from an IDE, same as Program 1: open
 `scripts/discover_homogeneous_relations.py`, edit the configuration
@@ -247,12 +261,33 @@ like `scripts/discover_scalar_relations.py`, the Euler triple's rank
 position, and optionally writes a CSV (`homogeneous_ranking.csv`, next to
 Program 1's `ranking.csv`, both under `PATH_TO_OUTPUT_FOLDER`).
 
-Program 1b shares its bottleneck-autoencoder core
-(`triangle_relations.discovery.autoencoder`) and search/progress-bar
-plumbing (`triangle_relations.discovery._parallel`) with Program 1, rather
-than duplicating either; only the sampling
-(`triangle_relations.discovery.shape_space`) and the search/scoring logic
-(`triangle_relations.discovery.homogeneous_relations`) are new.
+Program 1b shares search/progress-bar plumbing
+(`triangle_relations.discovery._parallel`) with Program 1, rather than
+duplicating it, but has its own detector core
+(`triangle_relations.discovery.sphere_autoencoder`, `.spherical_chart`) —
+Program 1's `triangle_relations.discovery.autoencoder` can't be reused here
+since it always minimizes plain Euclidean error, not the chart-aware sphere
+metric this needs. `triangle_relations.discovery.shape_space` (sampling)
+and `.homogeneous_relations` (search/scoring) are new too.
+
+### Inspecting a candidate visually
+
+`triangle_relations/discovery/inspect_relation.py` is a visual companion to
+the reconstruction-error number above: given one candidate triple, it plots
+the image of its degree-equalized embedding under a chart chosen generically
+for that triple's own data (see the "Why a generic chart is safe" remark in
+the theory doc). An exact relation should be visible directly as the sampled
+points collapsing onto a thin 1D curve; no relation should look like a
+filled 2D patch.
+
+```
+poetry run python -m triangle_relations.discovery.inspect_relation
+```
+
+The `__main__` block runs both cases for comparison: Euler's triple
+(collapses to a curve) against an unrelated triple (fills a 2D patch),
+saving `euler_relation_image.png` and `generic_triple_image.png`. Call
+`plot_relation_image(names)` directly to inspect any other candidate.
 
 ## Program 2 — incidence relations between derived points (planned)
 

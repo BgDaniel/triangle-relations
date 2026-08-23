@@ -473,20 +473,31 @@ Propositions~\ref{prop:suff}--\ref{prop:nec}, now with $\Sigma$ and
 $S^2_+$ in place of $X\subset\mathbb R^3$, and geodesic distance on $S^2_+$
 in place of Euclidean distance in $\mathbb R^3$.
 
-\begin{remark}[Why this removes the null]
-Geodesic distance on $S^2_+$ is bounded above by the sphere's diameter,
+\begin{remark}[Why this removes the null]\label{rem:removes-null}
+Chordal (equivalently, up to a monotone reparametrization, geodesic)
+distance on $S^2_+$ is bounded above by the sphere's diameter,
 independently of which triple $(f_1,f_2,f_3)$ is tested --- unlike
 $L_{\mathrm{real}}$ in Section~\ref{sec:autoencoder}, whose scale depends on
 the raw units and typical magnitude of the $f_i$, which is precisely why
-Section~\ref{sec:null} needed a triple-specific calibration. The
-implementation (\texttt{homogeneous\_relations.reconstruction\_error}, via
-the shared bottleneck trainer of Section~\ref{sec:autoencoder}) measures
-this with the ambient, standardized Euclidean error on $\bar\Phi(T)\in
-S^2_+\subset\mathbb R^3$ rather than literal geodesic distance, as a
-simpler proxy; since every triple's data lies on the same fixed unit sphere
-regardless of which $f_1,f_2,f_3$ were chosen, this is already comparable
-across triples without a null, even though it is not exactly the geodesic
-metric. This also allows $\Sigma$ to be sampled evenly and
+Section~\ref{sec:null} needed a triple-specific calibration. Realizing this
+in code, however, is not simply a matter of calling the bottleneck trainer
+of Section~\ref{sec:autoencoder} with different data: that trainer (built
+on \texttt{scikit-learn}) always minimizes plain Euclidean squared error,
+with no hook for a different loss, and Euclidean distance in a flat chart
+of $S^2_+$ is \emph{not} chordal distance on $S^2_+$ --- a stereographic
+chart distorts distances, worse away from its excluded pole (Remark
+\ref{rem:chart}). \texttt{triangle\_relations.discovery.sphere\_autoencoder}
+therefore trains a small network (PyTorch, for its autograd) whose encoder
+and decoder operate on 2D chart coordinates of $S^2_+$, but whose loss maps
+the decoder's chart-coordinate output back through the differentiable
+\emph{inverse} chart before comparing it to the true point: the quantity
+gradient descent actually minimizes is chordal distance on $S^2_+$ itself,
+$\|\bar\Phi(T)-\psi(d(e(\varphi(\bar\Phi(T)))))\|$ where $\varphi,\psi$ are
+the chart and its inverse, not a chart-space proxy for it. Squared chordal
+distance is bounded in $[0,4]$ for \emph{every} triple with no rescaling
+needed, since $\bar\Phi(T)$ is already on a fixed, triple-independent scale
+by construction (a unit vector) --- so, with no null and no dependence on a
+shuffle count $m$. This also allows $\Sigma$ to be sampled evenly and
 deterministically (Remark~\ref{rem:chart}), rather than relying on i.i.d.\
 random triangles to cover it.
 \end{remark}
@@ -507,11 +518,14 @@ confined to the excluded locus regardless, that would not be a failure of
 the method --- it would mean the degree-equalized coordinates satisfy a
 further, linear relation (confinement to a proper linear subspace), exactly
 the kind of coincidence this apparatus is built to notice, just a simpler
-one. The current implementation sidesteps the question on the target side
-entirely: every positive-degree registered scalar is strictly positive on
-every nondegenerate triangle, so $\Phi(T)$ is never the zero vector and its
-normalization $\bar\Phi(T)$ is always defined, with no chart needed there
-at all.
+one. On the target side, the current implementation picks a single fixed
+pole for every triple --- outside the positive octant every positive-degree
+scalar triple's image lives in (every registered scalar of positive degree
+is strictly positive on every nondegenerate triangle), so its excluded
+locus never comes close to any actual data, for any triple
+(\texttt{spherical\_chart.CANONICAL\_POLE}). Since the pole is fixed rather
+than chosen per triple, the chart itself introduces no per-triple
+calibration, consistent with Remark~\ref{rem:removes-null}.
 \end{remark}
 
 \begin{remark}[Scope: degree-$0$ scalars]

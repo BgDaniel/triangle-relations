@@ -33,11 +33,28 @@ diffeomorphism), and no further compression is possible; an exact relation
 forces the image to collapse onto a 1-dimensional curve. We test this the
 same way Program 1 tests its own dichotomy -- train a bottleneck
 autoencoder and measure held-out reconstruction error -- but with a
-bottleneck of size 1 (compressing the sphere-embedded data further, to a
-curve) rather than Program 1's size-2 bottleneck (compressing raw scalars
-down to a surface), and with no shuffled null: small error means the image
-did collapse to a curve (strong evidence of a relation); error staying
-bounded away from 0 means it didn't.
+bottleneck of size 1 (matching the target's own intrinsic dimension of 2,
+same as Program 1's size-2 bottleneck matches its target's intrinsic
+dimension of 3) and with no shuffled null: small error means the image did
+collapse to a curve (strong evidence of a relation); error staying bounded
+away from 0 means it didn't.
+
+Concretely, the encoder/decoder operate on a 2D coordinate *chart* of the
+target sphere, not its raw 3D ambient embedding -- necessary to write down
+network input/output at all, since a manifold can't be handed to code
+directly, and matching the target's intrinsic dimension, unlike the 3
+ambient coordinates (which are redundant: any 2 of the 3 already determine
+the third, on the sphere). The loss is not plain Euclidean distance in that
+chart, though -- a stereographic chart distorts distances, worse away from
+its excluded pole. Instead the decoder's chart-coordinate output is mapped
+back through the (differentiable) *inverse* chart before being compared to
+the true point, so what gradient descent actually minimizes is chordal
+distance on the sphere itself. See
+:mod:`triangle_relations.discovery.sphere_autoencoder` (this needs
+PyTorch's autograd -- scikit-learn's ``MLPRegressor``, which Program 1
+uses, has no custom-loss hook) and
+:mod:`triangle_relations.discovery.spherical_chart` for the chart
+construction, shared with :mod:`triangle_relations.discovery.inspect_relation`.
 
 Two scope notes:
 
@@ -46,13 +63,11 @@ Two scope notes:
   ``d``-th root above). Degree-0 (scale-invariant) scalars, like angles, are
   excluded -- see :func:`search_homogeneous_relations`.
 * Turning a point of shape space into an actual triangle to evaluate scalars
-  on (and, in principle, turning ``Phi(T)`` into plottable coordinates)
-  requires a coordinate *chart*, since neither shape space nor the target
-  sphere can be handed to code as an abstract manifold -- concrete numbers
-  are needed. :mod:`triangle_relations.discovery.shape_space` picks one
-  concrete chart for the domain (a complex cross-ratio) explicitly for this
-  reason. Any chart omits a lower-dimensional locus (for shape space here,
-  a single point); a *generic* choice is safe because a relation-free
+  on requires a coordinate *chart* on shape space too, for the same reason
+  as above; :mod:`triangle_relations.discovery.shape_space` picks one (a
+  complex cross-ratio). Any chart -- on shape space or on the target sphere
+  -- omits a lower-dimensional locus (a single point, for a stereographic
+  chart); a *generic* choice of pole is safe because a relation-free
   triple's image is open (it covers a full neighborhood of the target
   sphere), so it can only meet that lower-dimensional excluded locus in a
   measure-zero way -- and if it somehow didn't (the image landed entirely
@@ -72,9 +87,9 @@ import numpy as np
 from joblib import Parallel, delayed
 
 from triangle_relations.discovery._parallel import joblib_progress
-from triangle_relations.discovery.autoencoder import reconstruction_error
 from triangle_relations.discovery.known_relations import is_euler_triple
 from triangle_relations.discovery.sampling import evaluate_scalars
+from triangle_relations.discovery.sphere_autoencoder import sphere_reconstruction_error
 from triangle_relations.geometry.triangle import Triangle
 
 logger = logging.getLogger(__name__)
@@ -101,11 +116,19 @@ class HomogeneousRelationResult:
     degrees:
         Their homogeneity degrees (see :attr:`Triangle.SCALAR_DEGREES`).
     error:
-        Held-out reconstruction error of a bottleneck-1 autoencoder on the
-        degree-equalized, unit-normalized triple -- i.e. how well the image
-        on the target sphere compresses onto a *curve*. Small error is
-        strong evidence of a relation; comparable directly across triples
-        and against a fixed threshold, with no per-triple calibration.
+        Held-out mean squared *sphere* (chordal) reconstruction error from
+        :func:`~triangle_relations.discovery.sphere_autoencoder.sphere_reconstruction_error`,
+        a bottleneck-1 autoencoder trained -- via a differentiable
+        stereographic chart -- to directly minimize chordal distance on the
+        target sphere, not a chart-space or standardized proxy for it (see
+        that module's docstring for why this needed a custom PyTorch loss
+        rather than Program 1's scikit-learn detector). I.e. how well the
+        image on the target sphere compresses onto a *curve*. Bounded in
+        ``[0, 4]`` for every triple regardless of its units or typical
+        magnitude (both endpoints of a unit-vector difference), so it is
+        comparable directly across triples and against a fixed threshold,
+        with no per-triple calibration. Small error is strong evidence of a
+        relation.
     """
 
     names: tuple[str, str, str]
@@ -154,7 +177,7 @@ def _evaluate_triple(
         logger.warning("%s: skipped, too few sampled triangles had all-positive values", names)
         return None
 
-    error = reconstruction_error(
+    error = sphere_reconstruction_error(
         embedding,
         bottleneck=1,
         hidden=hidden,
@@ -244,6 +267,37 @@ def search_homogeneous_relations(
     results = [r for r in results if r is not None]
     logger.info("finished searching %d triple(s)", len(results))
     return sorted(results, key=lambda r: r.error)
+
+
+def embed_triple(triangles: list[Triangle], names: tuple[str, str, str]) -> np.ndarray:
+    """Degree-equalized, unit-normalized embedding of one scalar triple on ``triangles``.
+
+    Public entry point to the same embedding :func:`search_homogeneous_relations`
+    uses internally per candidate triple, for direct inspection -- see
+    :mod:`triangle_relations.discovery.inspect_relation`.
+
+    Returns
+    -------
+    An ``(n, 3)`` array of unit vectors on the target sphere (see the module
+    docstring), one row per triangle that survived the positivity filter.
+
+    Raises
+    ------
+    ValueError
+        If any of the three scalars has non-positive homogeneity degree
+        (see :attr:`Triangle.SCALAR_DEGREES`), or fewer than
+        :data:`_MIN_VALID_ROWS` triangles survive the positivity filter.
+    """
+    _, data = evaluate_scalars(triangles, list(names))
+    degrees = tuple(Triangle.scalar_degree(name) for name in names)
+    if any(d <= 0 for d in degrees):
+        raise ValueError(
+            f"{names}: all three scalars must have positive homogeneity degree, got {degrees}"
+        )
+    embedding = _degree_equalized_embedding(data, degrees)
+    if embedding is None:
+        raise ValueError(f"{names}: too few sampled triangles had all-positive values")
+    return embedding
 
 
 def log_euler_triple_rank(results: list[HomogeneousRelationResult]) -> None:
