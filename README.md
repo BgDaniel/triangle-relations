@@ -65,7 +65,21 @@ poetry run python scripts/discover_scalar_relations.py
 ```
 
 `SCALAR_NAMES` restricts the search space (the full search is combinatorial
-and can be slow); `OUTPUT_CSV` optionally dumps the full ranking to a file.
+and can be slow, so a `tqdm` progress bar tracks how many of the `C(n, 3)`
+combinations have been processed so far); `OUTPUT_CSV` optionally dumps the
+full ranking to a file.
+
+By default (`PLOT_RANKING = True`) a horizontal bar chart of z-scores for
+the top `TOP` triples is shown automatically once the search finishes. To
+re-plot a previously saved `OUTPUT_CSV` later without rerunning the search,
+edit `CSV_PATH` in `scripts/plot_ranking.py` and run it:
+
+```
+poetry run python scripts/plot_ranking.py
+```
+
+(`triangle_relations.discovery.ranking_plot.plot_ranking` and
+`load_ranking_csv` are the underlying functions, usable directly too.)
 
 The autoencoder is used purely as a *detector*: it only tells you whether a
 triple of quantities is suspiciously dependent, not what the relation
