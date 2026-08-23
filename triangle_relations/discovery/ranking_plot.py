@@ -1,6 +1,6 @@
 """Plot the ranking of candidate scalar triples produced by Program 1.
 
-:func:`plot_ranking` draws two stacked, y-axis-aligned bar-chart panels for
+:func:`plot_ranking` draws two stacked, x-axis-aligned bar-chart panels for
 the top-``top`` candidate triples by z-score: the z-score itself on top, and
 the *relative* null standard deviation (``null_std / null_mean``) for those
 same triples, in the same order, below. Since
@@ -86,7 +86,7 @@ def _relative_sigma(r: RelationResult) -> float:
 def plot_ranking(results: list[RelationResult], *, top: int = 20) -> "Figure":
     """Plot the top triples by z-score, with their relative null std alongside.
 
-    Two stacked panels share the same y-axis: the same top-``top`` triples,
+    Two stacked panels share the same x-axis: the same top-``top`` triples,
     in the same z-score-ranked order, so a given row shows both numbers for
     the same triple. Scalar names are abbreviated to their short symbols
     (see :attr:`~triangle_relations.geometry.triangle.Triangle.SCALAR_SYMBOLS`),
@@ -119,32 +119,35 @@ def plot_ranking(results: list[RelationResult], *, top: int = 20) -> "Figure":
         sum(flagged), len(shown), SMALL_RELATIVE_SIGMA_THRESHOLD,
     )
 
-    figsize = (9, 0.4 * len(shown) + 3.0)
-    fig, (ax_z, ax_sigma) = plt.subplots(2, 1, figsize=figsize, sharey=True)
+    figsize = (max(8.0, 0.55 * len(shown) + 2.0), 7.0)
+    fig, (ax_z, ax_sigma) = plt.subplots(
+        2, 1, figsize=figsize, sharex=True, constrained_layout=True,
+    )
 
-    y = range(len(shown))
-    ax_z.barh(y, z_scores, color=colors)
-    ax_z.axvline(0, color="black", linewidth=0.8)
-    ax_z.set_xlabel("z-score")
+    x = range(len(shown))
+    ax_z.bar(x, z_scores, color=colors)
+    ax_z.axhline(0, color="black", linewidth=0.8)
+    ax_z.set_ylabel("z-score")
     ax_z.set_title(f"Top {len(shown)} of {len(results)} by z-score", fontsize=10)
+    ax_z.tick_params(labelbottom=False)  # x labels drawn once, on the shared bottom panel
 
-    ax_sigma.barh(y, rel_sigmas, color=colors)
-    ax_sigma.axvline(
+    ax_sigma.bar(x, rel_sigmas, color=colors)
+    ax_sigma.axhline(
         SMALL_RELATIVE_SIGMA_THRESHOLD, color="gray", linewidth=0.8, linestyle="--",
     )
-    ax_sigma.set_xlabel("relative null std  (null_std / null_mean)")
+    ax_sigma.set_ylabel("relative null std\n(null_std / null_mean)")
     ax_sigma.set_title("Same triples: how tight was the null estimate?", fontsize=10)
 
-    ax_z.set_yticks(list(y))
-    ax_z.set_yticklabels(labels, fontsize=9)
-    ax_z.invert_yaxis()  # strongest (highest z-score) on top; shared, so flips ax_sigma too
+    ax_sigma.set_xticks(list(x))
+    ax_sigma.set_xticklabels(labels, rotation=45, ha="right", fontsize=9)
 
+    # constrained_layout (unlike tight_layout) reserves space for the
+    # suptitle automatically, so it doesn't overlap the panels below it.
     fig.suptitle(
         f"Candidate scalar triples ranked by z-score\n"
         f"(orange = relative null std < {SMALL_RELATIVE_SIGMA_THRESHOLD}: "
         f"treat this z-score with caution, e.g. check ratio instead)"
     )
-    fig.tight_layout()
     return fig
 
 

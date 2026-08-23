@@ -35,7 +35,7 @@ _output_dir = os.environ.get(OUTPUT_DIR_ENV_VAR)
 CSV_PATH: str = str(Path(_output_dir) / "ranking.csv") if _output_dir else "output/ranking.csv"
 
 #: Number of top-ranked triples to show.
-TOP = 20
+TOP = 10
 
 
 def main() -> None:

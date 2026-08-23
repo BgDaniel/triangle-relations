@@ -80,7 +80,8 @@ scripts pick it up automatically. If it's unset, `OUTPUT_CSV` defaults to
 By default (`PLOT_RANKING = True`) a two-panel bar chart is shown
 automatically once the search finishes: the top `TOP` triples by z-score on
 top, and — for those exact same triples, in the same order (the two panels
-share a y-axis) — their *relative* null standard deviation
+share an x-axis, with combination names only labeled on the bottom panel)
+— their *relative* null standard deviation
 (`null_std / null_mean`) below. Since `z = (null_mean - real_error) /
 null_std`, a small `null_std` alone can inflate a z-score without the
 real/null gap actually being large; triples whose relative sigma falls
