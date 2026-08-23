@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 #: Number of random triangles to sample.
-N_SAMPLES = 5000
+N_SAMPLES = 1500
 
 #: Random triangle vertices are drawn uniformly from [-SCALE, SCALE]^2.
 SCALE = 1.0
@@ -45,7 +45,7 @@ HIDDEN = 8
 N_RESTARTS = 1
 
 #: Number of independent column-shuffled null datasets averaged per triple.
-N_SHUFFLES = 500
+N_SHUFFLES = 30
 
 #: Held-out fraction used to measure autoencoder reconstruction error.
 TEST_SIZE = 0.3

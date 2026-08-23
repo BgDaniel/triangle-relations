@@ -11,45 +11,17 @@ predict.
 
 from __future__ import annotations
 
-import contextlib
 import logging
 from dataclasses import dataclass
 from itertools import combinations
-from typing import Iterator
 
-import joblib
 import numpy as np
 from joblib import Parallel, delayed
-from tqdm.auto import tqdm
 
+from triangle_relations.discovery._parallel import joblib_progress
 from triangle_relations.discovery.autoencoder import reconstruction_error
 
 logger = logging.getLogger(__name__)
-
-
-@contextlib.contextmanager
-def _joblib_progress(total: int, desc: str) -> Iterator[tqdm]:
-    """Report :class:`joblib.Parallel` batch completions into a tqdm bar.
-
-    ``joblib.Parallel`` has no built-in progress callback; this patches its
-    batch-completion hook for the duration of the ``with`` block so each
-    finished triple (including ones run in other worker processes) ticks the
-    bar, then restores the original hook.
-    """
-    progress_bar = tqdm(total=total, desc=desc, unit="triple")
-
-    class _TqdmBatchCompletionCallback(joblib.parallel.BatchCompletionCallBack):
-        def __call__(self, *args, **kwargs):
-            progress_bar.update(self.batch_size)
-            return super().__call__(*args, **kwargs)
-
-    original_callback = joblib.parallel.BatchCompletionCallBack
-    joblib.parallel.BatchCompletionCallBack = _TqdmBatchCompletionCallback
-    try:
-        yield progress_bar
-    finally:
-        joblib.parallel.BatchCompletionCallBack = original_callback
-        progress_bar.close()
 
 
 @dataclass
@@ -236,7 +208,7 @@ def search_three_scalar_relations(
     )
 
     if progress:
-        with _joblib_progress(len(triples), desc="Searching scalar triples"):
+        with joblib_progress(len(triples), desc="Searching scalar triples"):
             results = Parallel(n_jobs=n_jobs)(jobs)
     else:
         results = Parallel(n_jobs=n_jobs)(jobs)

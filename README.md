@@ -201,6 +201,59 @@ distribution):
 pdflatex discovering_triangle_relations.tex
 ```
 
+Section 6 of the `.tex` source, "A scale-free reformulation via shape
+space," derives Program 1b below in full — including *why* a coordinate
+chart is unavoidable to make any of this numerically concrete, and why a
+generic choice of chart can't silently hide a relation from the search (a
+Remark titled "Why a generic chart is safe").
+
+## Program 1b — homogeneous relations, without a null
+
+A second, complementary search, restricted to relations that are
+*homogeneous* under uniform scaling of the triangle (every term scales the
+same way — true of essentially every relation of practical interest,
+Euler's included: `d^2`, `R^2`, `Rr` are all degree 2). In exchange for that
+restriction, it needs **no permutation null at all**, which is what makes
+Program 1's `N_SHUFFLES` expensive to push up (see above): triangles are
+sampled once, evenly, over the 2-dimensional space of triangle *shapes*
+(forgetting size — a classical theorem of Kendall identifies this space
+with a sphere), and each candidate triple is scored by a single held-out
+reconstruction error that is already comparable across triples with no
+per-triple calibration, since it's computed on data that always lives on
+the same fixed unit sphere regardless of which scalars are chosen.
+
+Concretely: a scalar `f` of homogeneity degree `d` (`0` for angles, `1` for
+lengths/distances/`R`/`r`/perimeter, `2` for area — see
+`Triangle.SCALAR_DEGREES`) satisfies `f(T)**(1/d)` scales *linearly* with
+the triangle regardless of `d`; combining three such degree-equalized,
+positive scalars into a unit vector gives a point that depends only on
+shape, not size. A relation shows up as this map collapsing its image onto
+a curve rather than covering an open patch of the target sphere — detected
+the same way as Program 1 (a bottleneck autoencoder), but with a
+bottleneck of size 1 instead of 2, and no null. Degree-0 (scale-invariant)
+scalars, like angles, can't take part (`f**(1/0)` is undefined) and are
+excluded from this search automatically; Program 1 still covers them.
+
+This is meant to be run from an IDE, same as Program 1: open
+`scripts/discover_homogeneous_relations.py`, edit the configuration
+constants at the top, and run:
+
+```
+poetry run python scripts/discover_homogeneous_relations.py
+```
+
+It logs the ranked triples (smallest `error` = strongest candidate) and,
+like `scripts/discover_scalar_relations.py`, the Euler triple's rank
+position, and optionally writes a CSV (`homogeneous_ranking.csv`, next to
+Program 1's `ranking.csv`, both under `PATH_TO_OUTPUT_FOLDER`).
+
+Program 1b shares its bottleneck-autoencoder core
+(`triangle_relations.discovery.autoencoder`) and search/progress-bar
+plumbing (`triangle_relations.discovery._parallel`) with Program 1, rather
+than duplicating either; only the sampling
+(`triangle_relations.discovery.shape_space`) and the search/scoring logic
+(`triangle_relations.discovery.homogeneous_relations`) are new.
+
 ## Program 2 — incidence relations between derived points (planned)
 
 Not yet implemented: searching combinations of three or more derived points

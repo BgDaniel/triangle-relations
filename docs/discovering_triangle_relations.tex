@@ -377,4 +377,154 @@ is suspiciously dependent, not what the relation is. The
 \texttt{verify\_euler\_relation} module runs this on $(R,r,d)$, confirming
 it flags Euler's relation with no prior knowledge of the formula.
 
+\section{A scale-free reformulation via shape space (Program 1b)}
+\label{sec:shapespace}
+
+The permutation null of Section~\ref{sec:null} exists to answer one
+question: how small must $L_{\mathrm{real}}$ be, in the arbitrary units and
+scale of a given triple $(f_1,f_2,f_3)$, to count as evidence of a relation?
+Increasing the number of reshufflings $m$ improves that per-triple
+calibration but is exactly the expensive step: each reshuffling retrains an
+autoencoder from scratch. This section describes an alternative, restricted
+to \emph{homogeneous} relations, in which the reconstruction error is
+intrinsically bounded --- the same bound for every triple --- so no
+calibration step is needed at all. It is implemented as ``Program 1b'' in
+\texttt{triangle\_relations.discovery.homogeneous\_relations} and
+\texttt{triangle\_relations.discovery.shape\_space}, alongside (not instead
+of) Program 1 from the preceding sections.
+
+\subsection{The shape sphere}
+
+The group $\mathbb R_{>0}$ acts on $\M$ by uniform dilation (scaling a
+representative triangle about its centroid by $\lambda>0$); this is
+well-defined on $\M$ since dilation commutes with the translation and
+rotation already quotiented out. Write
+\begin{equation}
+  \Sigma=\M/\mathbb R_{>0}
+\end{equation}
+for the quotient, $\dim\Sigma=2$: this is the space of triangle
+\emph{shapes}, forgetting size entirely. For triangles with labeled
+vertices, a classical theorem of Kendall~\cite{kendall1984} identifies
+$\Sigma$ diffeomorphically with a round $2$-sphere (of radius $\tfrac12$ in
+the standard normalization), the two poles corresponding to the
+positively- and negatively-oriented equilateral triangle and the equator to
+the degenerate (collinear) triangles. In particular $\Sigma$ is compact,
+with a canonical, bounded geodesic distance.
+
+\begin{remark}[An explicit chart on shape space]\label{rem:chart}
+Kendall's theorem identifies $\Sigma$ with $S^2$ abstractly; to actually
+evaluate $f_1,f_2,f_3$ we need a concrete triangle, so an explicit chart is
+unavoidable --- no code can accept "a point of an abstract $2$-manifold" as
+input. Fix two of the three labeled vertices as a base and normalize by the
+unique orientation-preserving similarity sending them to $0,1\in\mathbb
+C\cong\mathbb R^2$: the third vertex lands at some
+$\zeta=(C-A)/(B-A)\in\mathbb C$, and conversely every $\zeta$ gives back the
+concrete triangle $(0,0),(1,0),(\operatorname{Re}\zeta,\operatorname{Im}\zeta)$.
+This is exactly a chart on $\Sigma$ (identifying it with the Riemann sphere
+$\mathbb{CP}^1$ via $\zeta$), covering every shape except the single
+degenerate configuration $B=A$ (i.e.\ $\zeta=\infty$). Sampling $\zeta$
+uniformly on $\mathbb C$ would not sample $\Sigma$ evenly, since the chart
+stretches near infinity; instead
+\texttt{triangle\_relations.discovery.shape\_space} places points evenly on
+$S^2$ (a Fibonacci lattice, a standard low-discrepancy construction) and
+pushes them through the inverse of the stereographic projection defining
+$\zeta$, giving deterministic, even coverage of $\Sigma$ rather than relying
+on i.i.d.\ sampling to eventually fill it in.
+\end{remark}
+
+\subsection{Degree-equalized scalars}
+
+Call $f:\M\to\mathbb R$ \emph{homogeneous of degree $d$} if
+$f(\lambda\cdot T)=\lambda^d f(T)$ for every $\lambda>0$. Every scalar
+currently in the registry is homogeneous in this sense: angles have
+$d=0$; side lengths, $R$, $r$, perimeter, and every point-to-point distance
+have $d=1$; area has $d=2$. Given a candidate triple $f_1,f_2,f_3$, all
+everywhere-positive and of degrees $d_1,d_2,d_3>0$, define
+\begin{equation}
+  \Phi=\bigl(f_1^{1/d_1},\,f_2^{1/d_2},\,f_3^{1/d_3}\bigr):\M\to(\mathbb
+  R_{>0})^3 .
+\end{equation}
+The point of the $d_i$-th root is that it equalizes scaling behavior:
+$f_i(\lambda\cdot T)^{1/d_i}=\bigl(\lambda^{d_i}f_i(T)\bigr)^{1/d_i}
+=\lambda\,f_i(T)^{1/d_i}$, so \emph{every} component of $\Phi$ scales by the
+same factor $\lambda$, regardless of the original $d_i$. Consequently
+$\Phi(\lambda\cdot T)=\lambda\,\Phi(T)$, so normalizing to unit length
+descends to a well-defined map on the quotient,
+\begin{equation}
+  \bar\Phi:\Sigma\longrightarrow S^2_+ ,\qquad
+  \bar\Phi([T])=\Phi(T)/\|\Phi(T)\| ,
+\end{equation}
+valued in the positive octant $S^2_+$ of the unit sphere. (Without the
+root-normalization step, the three components of $\Phi$ would scale at
+three different rates and no such map would descend to $\Sigma$; this is
+the one place the homogeneity assumption is doing real work.)
+
+\subsection{The expected dichotomy}
+
+Both $\Sigma$ and $S^2_+$ are $2$-dimensional, so this is the $k=3$
+argument of Section~\ref{sec:setup} one dimension down, with $\M$ replaced
+by $\Sigma$ and $\mathbb R^3$ replaced by $S^2_+$: generically
+$D\bar\Phi$ has full rank $2$ and, by the inverse function theorem,
+$\bar\Phi$ is a local diffeomorphism, so its image is open in $S^2_+$. An
+exact homogeneous relation $G(f_1,f_2,f_3)=0$ forces $\operatorname{rank}
+D\bar\Phi\le1$ everywhere, collapsing the image onto a curve --- not
+generic, and detectable in the same spirit as
+Propositions~\ref{prop:suff}--\ref{prop:nec}, now with $\Sigma$ and
+$S^2_+$ in place of $X\subset\mathbb R^3$, and geodesic distance on $S^2_+$
+in place of Euclidean distance in $\mathbb R^3$.
+
+\begin{remark}[Why this removes the null]
+Geodesic distance on $S^2_+$ is bounded above by the sphere's diameter,
+independently of which triple $(f_1,f_2,f_3)$ is tested --- unlike
+$L_{\mathrm{real}}$ in Section~\ref{sec:autoencoder}, whose scale depends on
+the raw units and typical magnitude of the $f_i$, which is precisely why
+Section~\ref{sec:null} needed a triple-specific calibration. The
+implementation (\texttt{homogeneous\_relations.reconstruction\_error}, via
+the shared bottleneck trainer of Section~\ref{sec:autoencoder}) measures
+this with the ambient, standardized Euclidean error on $\bar\Phi(T)\in
+S^2_+\subset\mathbb R^3$ rather than literal geodesic distance, as a
+simpler proxy; since every triple's data lies on the same fixed unit sphere
+regardless of which $f_1,f_2,f_3$ were chosen, this is already comparable
+across triples without a null, even though it is not exactly the geodesic
+metric. This also allows $\Sigma$ to be sampled evenly and
+deterministically (Remark~\ref{rem:chart}), rather than relying on i.i.d.\
+random triangles to cover it.
+\end{remark}
+
+\begin{remark}[Why a generic chart is safe]
+A chart is only ever defined on the complement of some lower-dimensional
+excluded locus --- a single point for the $\zeta$-chart of
+Remark~\ref{rem:chart}; more generally, for a chart on $\mathbb{RP}^2$
+itself, a full line "at infinity." This raises an obvious worry: what if
+the image we are trying to observe lands entirely inside the excluded locus
+of whichever chart we happened to pick, invisible to it? For a
+\emph{generic} choice of chart this cannot happen when there is no
+relation: the excluded locus has positive codimension, while the image of a
+relation-free triple is open (the same dichotomy as
+Section~\ref{sec:setup}), so it can only meet a fixed positive-codimension
+subset in a measure-zero way, never entirely. And if the image \emph{were}
+confined to the excluded locus regardless, that would not be a failure of
+the method --- it would mean the degree-equalized coordinates satisfy a
+further, linear relation (confinement to a proper linear subspace), exactly
+the kind of coincidence this apparatus is built to notice, just a simpler
+one. The current implementation sidesteps the question on the target side
+entirely: every positive-degree registered scalar is strictly positive on
+every nondegenerate triangle, so $\Phi(T)$ is never the zero vector and its
+normalization $\bar\Phi(T)$ is always defined, with no chart needed there
+at all.
+\end{remark}
+
+\begin{remark}[Scope: degree-$0$ scalars]
+This construction does not cover degree-$0$ scalars (angles), since
+$f^{1/0}$ is undefined; \texttt{search\_homogeneous\_relations} excludes
+them from the search (logged at run time), leaving them to Program 1's more
+general, but more expensive, permutation-null test.
+\end{remark}
+
+\begin{thebibliography}{9}
+\bibitem{kendall1984} D.~G.~Kendall, \emph{Shape manifolds, Procrustean
+  metrics, and complex projective spaces}, Bull. London Math. Soc.
+  \textbf{16} (1984), 81--121.
+\end{thebibliography}
+
 \end{document}

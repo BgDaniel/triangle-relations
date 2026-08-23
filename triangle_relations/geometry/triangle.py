@@ -384,11 +384,38 @@ class Triangle:
         "angle_C": "γ",  # γ
     }
 
+    #: Degree of homogeneity of each registered scalar under uniform
+    #: dilation of the triangle (``f(lambda * T) == lambda**degree *
+    #: f(T)``): 0 for scale-invariant quantities (angles), 1 for lengths
+    #: (side lengths, R, r, perimeter, point-to-point distances), 2 for
+    #: area. Used by the homogeneous-relation search (Program 1b, see
+    #: :mod:`triangle_relations.discovery.homogeneous_relations`), which
+    #: only applies to scalars of a single well-defined positive degree.
+    #: Populated here for the intrinsic scalars above; extended
+    #: automatically for pairwise-distance scalars (always degree 1) by
+    #: :meth:`_register_pairwise_point_distances`.
+    SCALAR_DEGREES: dict[str, int] = {
+        "area": 2,
+        "perimeter": 1,
+        "semiperimeter": 1,
+        "circumradius": 1,
+        "inradius": 1,
+        "side_a": 1,
+        "side_b": 1,
+        "side_c": 1,
+        "angle_A": 0,
+        "angle_B": 0,
+        "angle_C": 0,
+    }
+
     @classmethod
     def _register_pairwise_point_distances(cls) -> None:
         """Add ``dist_<point1>__<point2>`` to :attr:`SCALARS` for every pair
         of points in :attr:`POINTS` (in alphabetical order of point names),
-        and a corresponding entry to :attr:`SCALAR_SYMBOLS`."""
+        and corresponding entries to :attr:`SCALAR_SYMBOLS` and
+        :attr:`SCALAR_DEGREES` (always degree 1: every registered point is a
+        similarity-equivariant function of the vertices, so the distance
+        between any two of them scales linearly with the triangle)."""
         for name1, name2 in combinations(sorted(cls.POINTS), 2):
             key = f"dist_{name1}__{name2}"
             if key in cls.SCALARS:
@@ -401,6 +428,7 @@ class Triangle:
 
             cls.SCALARS[key] = make()
             cls.SCALAR_SYMBOLS[key] = cls.POINT_SYMBOLS[name1] + cls.POINT_SYMBOLS[name2]
+            cls.SCALAR_DEGREES[key] = 1
 
     def point(self, name: str) -> np.ndarray:
         """Evaluate a registered derived point by name (see :attr:`POINTS`)."""
@@ -417,6 +445,11 @@ class Triangle:
         Falls back to ``name`` itself if it has no registered symbol.
         """
         return cls.SCALAR_SYMBOLS.get(name, name)
+
+    @classmethod
+    def scalar_degree(cls, name: str) -> int:
+        """Degree of homogeneity of a registered scalar (see :attr:`SCALAR_DEGREES`)."""
+        return cls.SCALAR_DEGREES[name]
 
     def all_scalars(self) -> dict[str, float]:
         """Evaluate every registered scalar quantity, keyed by name."""

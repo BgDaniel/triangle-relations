@@ -50,6 +50,43 @@ def random_triangle(rng: np.random.Generator, scale: float = 1.0) -> Triangle:
         n_rejected += 1
 
 
+def evaluate_scalars(
+    triangles: list[Triangle],
+    scalar_names: list[str] | None = None,
+) -> tuple[list[str], np.ndarray]:
+    """Evaluate scalar quantities on an existing list of triangles.
+
+    Every requested scalar is evaluated on the same set of triangles, so
+    different 3-scalar combinations drawn from the result remain directly
+    comparable. Shared by both discovery pipelines: Program 1
+    (:func:`build_scalar_dataset`, below, samples triangles i.i.d. before
+    calling this) and Program 1b
+    (:mod:`triangle_relations.discovery.homogeneous_relations`, which
+    samples triangles evenly over shape space instead).
+
+    Parameters
+    ----------
+    triangles:
+        Triangles to evaluate scalars on.
+    scalar_names:
+        Names of the scalars to evaluate (must be keys of
+        :attr:`Triangle.SCALARS`). Defaults to every registered scalar.
+
+    Returns
+    -------
+    A tuple ``(names, data)`` where ``data`` has shape
+    ``(len(triangles), len(names))`` and ``data[i, j]`` is scalar
+    ``names[j]`` evaluated on ``triangles[i]``.
+    """
+    names = list(scalar_names) if scalar_names is not None else sorted(Triangle.SCALARS)
+    data = np.empty((len(triangles), len(names)), dtype=float)
+    for i, triangle in enumerate(triangles):
+        for j, name in enumerate(names):
+            data[i, j] = triangle.scalar(name)
+    logger.debug("finished evaluating scalar dataset of shape %s", data.shape)
+    return names, data
+
+
 def build_scalar_dataset(
     n_samples: int,
     rng: np.random.Generator,
@@ -57,10 +94,6 @@ def build_scalar_dataset(
     scale: float = 1.0,
 ) -> tuple[list[str], np.ndarray]:
     """Sample ``n_samples`` random triangles and evaluate scalar quantities on each.
-
-    All requested triangles are drawn once and every requested scalar is
-    evaluated on the same set of triangles, so different 3-scalar
-    combinations drawn from the result remain directly comparable.
 
     Parameters
     ----------
@@ -76,16 +109,8 @@ def build_scalar_dataset(
 
     Returns
     -------
-    A tuple ``(names, data)`` where ``data`` has shape
-    ``(n_samples, len(names))`` and ``data[i, j]`` is scalar ``names[j]``
-    evaluated on the i-th sampled triangle.
+    A tuple ``(names, data)`` as returned by :func:`evaluate_scalars`.
     """
-    names = list(scalar_names) if scalar_names is not None else sorted(Triangle.SCALARS)
-    logger.info("sampling %d random triangles for %d scalar(s)", n_samples, len(names))
-    data = np.empty((n_samples, len(names)), dtype=float)
-    for i in range(n_samples):
-        triangle = random_triangle(rng, scale=scale)
-        for j, name in enumerate(names):
-            data[i, j] = triangle.scalar(name)
-    logger.debug("finished sampling scalar dataset of shape %s", data.shape)
-    return names, data
+    logger.info("sampling %d random triangles", n_samples)
+    triangles = [random_triangle(rng, scale=scale) for _ in range(n_samples)]
+    return evaluate_scalars(triangles, scalar_names)

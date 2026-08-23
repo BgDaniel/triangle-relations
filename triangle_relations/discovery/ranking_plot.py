@@ -57,6 +57,7 @@ from typing import TYPE_CHECKING, Callable
 
 import matplotlib.pyplot as plt
 
+from triangle_relations.discovery.known_relations import EULER_TRIPLE_NAMES, is_euler_triple
 from triangle_relations.discovery.scalar_relations import RelationResult
 from triangle_relations.geometry.triangle import Triangle
 
@@ -71,14 +72,6 @@ logger = logging.getLogger(__name__)
 #: z-score even without a strong real/null gap. See the module docstring
 #: for how this connects to the number of shuffles used to estimate it.
 SMALL_RELATIVE_SIGMA_THRESHOLD = 0.15
-
-#: The scalar triple behind Euler's classical relation, d^2 = R^2 - 2Rr,
-#: where d is the circumcenter-incenter distance (OI in symbol form):
-#: circumradius (R), inradius (r), and dist_circumcenter__incenter (OI).
-#: A frozenset, so membership doesn't depend on name order.
-EULER_TRIPLE_NAMES: frozenset[str] = frozenset(
-    {"circumradius", "inradius", "dist_circumcenter__incenter"}
-)
 
 _HIGHLIGHT_COLOR = "red"
 _DEFAULT_COLOR = "tab:blue"
@@ -128,7 +121,7 @@ def _relative_sigma(r: RelationResult) -> float:
 
 
 def _is_euler_triple(r: RelationResult) -> bool:
-    return frozenset(r.names) == EULER_TRIPLE_NAMES
+    return is_euler_triple(r.names)
 
 
 def _top_name_sets(results: list[RelationResult], top: int) -> tuple[set[frozenset], set[frozenset]]:
