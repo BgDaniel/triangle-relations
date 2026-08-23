@@ -49,7 +49,7 @@ CSV_PATH: str = (
 )
 
 #: Number of top-ranked triples to show.
-TOP = 50
+TOP = 20
 
 
 def main() -> None:

@@ -69,6 +69,7 @@ import matplotlib.pyplot as plt
 from triangle_relations.discovery.homogeneous_relations import HomogeneousRelationResult
 from triangle_relations.discovery.known_relations import EULER_TRIPLE_NAMES, is_euler_triple
 from triangle_relations.discovery.scalar_relations import RelationResult
+from triangle_relations.discovery.sphere_autoencoder import MAX_SPHERE_ERROR
 from triangle_relations.geometry.triangle import Triangle
 
 if TYPE_CHECKING:
@@ -414,6 +415,18 @@ def plot_homogeneous_ranking(
     highlighted in red with a small label, exactly as in the Program 1
     plots.
 
+    Logs the error range twice: once for the ``top`` triples actually
+    shown, once for the full ``results`` passed in, alongside
+    :data:`~triangle_relations.discovery.sphere_autoencoder.MAX_SPHERE_ERROR`.
+    That ceiling is rarely approached in practice by *any* triple, related
+    or not -- since every scalar is a function of the same 2-parameter
+    shape space, even functionally-independent triples are typically
+    correlated enough that a bottleneck-1 curve tracks their image
+    reasonably well, landing well below the ceiling regardless. So the
+    ceiling is not a useful absolute threshold on its own; the full-search
+    range is what makes a small "shown" range interpretable, since
+    ``shown`` is already the cherry-picked strongest candidates.
+
     Parameters
     ----------
     results:
@@ -437,6 +450,29 @@ def plot_homogeneous_ranking(
     labels = [_symbol_label(r.names) for r in shown]
     errors = [r.error for r in shown]
     colors = _highlight_colors(shown)
+
+    all_errors = [r.error for r in results]
+    logger.info(
+        "error range -- shown (top %d): [%.4g, %.4g]; full search (%d triples): [%.4g, %.4g]; "
+        "theoretical ceiling: %.1f (max possible squared chordal distance on the target sphere, "
+        "see sphere_autoencoder.MAX_SPHERE_ERROR -- rarely approached in practice, related or "
+        "not, so it is not a useful absolute threshold; judge candidates by the relative gap "
+        "within this ranking instead, e.g. the top result vs. the full-search max above)",
+        len(shown), min(errors), max(errors), len(results), min(all_errors), max(all_errors),
+        MAX_SPHERE_ERROR,
+    )
+
+    sorted_all = sorted(results, key=lambda r: r.error)
+    n_edge = min(3, len(sorted_all))
+    # Full ASCII scalar names here, not _symbol_label's Greek symbols (e.g.
+    # area = "Delta"): those are fine in matplotlib labels, which use their
+    # own font engine, but can raise UnicodeEncodeError when logged to a
+    # plain Windows console (cp1252 by default).
+    def _fmt(r: HomogeneousRelationResult) -> str:
+        return f"({', '.join(r.names)}) error={r.error:.4g}"
+
+    logger.info("%d best : %s", n_edge, "; ".join(_fmt(r) for r in sorted_all[:n_edge]))
+    logger.info("%d worst: %s", n_edge, "; ".join(_fmt(r) for r in sorted_all[-n_edge:]))
 
     figsize = (max(8.0, 0.55 * len(shown) + 2.0), 5.0)
     fig, ax = plt.subplots(figsize=figsize, constrained_layout=True)
