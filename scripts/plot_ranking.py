@@ -11,6 +11,8 @@ Run with:
 from __future__ import annotations
 
 import logging
+import os
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 
@@ -22,8 +24,15 @@ logger = logging.getLogger(__name__)
 # Configuration -- edit these directly and re-run.
 # ---------------------------------------------------------------------------
 
+#: Same environment variable discover_scalar_relations.py reads its output
+#: directory from, so both scripts point at the same ranking.csv by default.
+OUTPUT_DIR_ENV_VAR = "PATH_TO_OUTPUT_FOLDER"
+
 #: Path to the ranking CSV written by scripts/discover_scalar_relations.py.
-CSV_PATH = "output/ranking.csv"
+#: Derived from the OUTPUT_DIR_ENV_VAR environment variable if it's set;
+#: edit directly to override.
+_output_dir = os.environ.get(OUTPUT_DIR_ENV_VAR)
+CSV_PATH: str = str(Path(_output_dir) / "ranking.csv") if _output_dir else "output/ranking.csv"
 
 #: Number of top-ranked triples to show.
 TOP = 20
@@ -31,6 +40,7 @@ TOP = 20
 
 def main() -> None:
     """Load CSV_PATH and plot its top TOP candidate triples by z-score."""
+    logger.info("reading ranking from %s", CSV_PATH)
     plot_ranking_from_csv(CSV_PATH, top=TOP)
     plt.tight_layout()
     plt.show()

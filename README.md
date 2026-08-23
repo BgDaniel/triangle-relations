@@ -69,10 +69,17 @@ and can be slow, so a `tqdm` progress bar tracks how many of the `C(n, 3)`
 combinations have been processed so far); `OUTPUT_CSV` optionally dumps the
 full ranking to a file.
 
+`OUTPUT_CSV` and `scripts/plot_ranking.py`'s `CSV_PATH` are both derived
+automatically from the `PATH_TO_OUTPUT_FOLDER` environment variable
+(as `<PATH_TO_OUTPUT_FOLDER>/ranking.csv`) if it's set, rather than
+a path hardcoded in the script — set it once in your environment (see
+"Setting an environment variable permanently in VS Code" below) and both
+scripts pick it up automatically. If it's unset, `OUTPUT_CSV` defaults to
+`None` (no CSV written) and `CSV_PATH` defaults to `output/ranking.csv`.
+
 By default (`PLOT_RANKING = True`) a horizontal bar chart of z-scores for
 the top `TOP` triples is shown automatically once the search finishes. To
-re-plot a previously saved `OUTPUT_CSV` later without rerunning the search,
-edit `CSV_PATH` in `scripts/plot_ranking.py` and run it:
+re-plot a previously saved ranking later without rerunning the search, run:
 
 ```
 poetry run python scripts/plot_ranking.py
@@ -80,6 +87,27 @@ poetry run python scripts/plot_ranking.py
 
 (`triangle_relations.discovery.ranking_plot.plot_ranking` and
 `load_ranking_csv` are the underlying functions, usable directly too.)
+
+<details>
+<summary>Setting <code>PATH_TO_OUTPUT_FOLDER</code> permanently in VS Code</summary>
+
+**Option A — Windows user environment variable** (works in any terminal, not
+just VS Code; requires restarting VS Code once afterward to pick it up):
+Windows Settings → search "environment variables" → *Edit environment
+variables for your account* → *New...* → name `PATH_TO_OUTPUT_FOLDER`,
+value e.g. `C:\Projects\triangle-relations\output`. Equivalently, in
+PowerShell: `[Environment]::SetEnvironmentVariable("PATH_TO_OUTPUT_FOLDER", "C:\Projects\triangle-relations\output", "User")`.
+
+**Option B — a `.env` file in the workspace root**: create `.env` next to
+`pyproject.toml` with a line like
+`PATH_TO_OUTPUT_FOLDER=C:\Projects\triangle-relations\output`.
+VS Code's Python extension loads this automatically for the integrated
+terminal and for debugging (the `python.envFile` setting, default
+`${workspaceFolder}/.env`) — no restart needed, just reopen the terminal.
+Since it's project-scoped, add `.env` to `.gitignore` unless you want to
+commit a shared default for the team.
+
+</details>
 
 The autoencoder is used purely as a *detector*: it only tells you whether a
 triple of quantities is suspiciously dependent, not what the relation

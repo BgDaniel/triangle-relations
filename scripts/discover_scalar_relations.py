@@ -11,9 +11,13 @@ from __future__ import annotations
 
 import csv
 import logging
+import os
+from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 
+from triangle_relations.discovery.ranking_plot import plot_ranking
 from triangle_relations.discovery.sampling import build_scalar_dataset
 from triangle_relations.discovery.scalar_relations import RelationResult, search_three_scalar_relations
 from triangle_relations.geometry.triangle import Triangle
@@ -56,12 +60,34 @@ SEED = 0
 #: (C(n, 3) triples) and can be slow; restrict this list for a quick pass.
 SCALAR_NAMES: list[str] | None = None
 
-#: Optional path to write the full ranking as CSV, or None to skip.
-OUTPUT_CSV: str | None = None
+#: Environment variable holding the directory where output files (e.g. the
+#: ranking CSV) are written. Set this once in your environment rather than
+#: hardcoding a machine-specific path here -- see the README for how to set
+#: it permanently in VS Code.
+OUTPUT_DIR_ENV_VAR = "PATH_TO_OUTPUT_FOLDER"
+
+#: Optional path to write the full ranking as CSV, or None to skip. Derived
+#: from the OUTPUT_DIR_ENV_VAR environment variable if it's set (as
+#: "<OUTPUT_DIR>/ranking.csv"); edit directly to override, or set the env
+#: var to None here to disable regardless of the environment.
+_output_dir = os.environ.get(OUTPUT_DIR_ENV_VAR)
+OUTPUT_CSV: str | None = str(Path(_output_dir) / "ranking.csv") if _output_dir else None
+
+#: Whether to plot the z-score ranking (see triangle_relations.discovery
+#: .ranking_plot.plot_ranking) after a successful run.
+PLOT_RANKING: bool = True
 
 
 def main() -> None:
     """Sample random triangles, search all scalar triples, and report the ranking."""
+    if OUTPUT_CSV:
+        logger.info("writing ranking to %s (from $%s)", OUTPUT_CSV, OUTPUT_DIR_ENV_VAR)
+    else:
+        logger.info(
+            "$%s is not set (or OUTPUT_CSV was overridden to None); skipping CSV output",
+            OUTPUT_DIR_ENV_VAR,
+        )
+
     rng = np.random.default_rng(SEED)
 
     if SCALAR_NAMES is None:
@@ -89,6 +115,11 @@ def main() -> None:
     if OUTPUT_CSV:
         _write_csv(results, OUTPUT_CSV)
 
+    if PLOT_RANKING:
+        plot_ranking(results, top=TOP)
+        plt.tight_layout()
+        plt.show()
+
 
 def _log_ranking(results: list[RelationResult]) -> None:
     """Log the ranked results as an aligned table (strongest candidate first)."""
@@ -103,7 +134,8 @@ def _log_ranking(results: list[RelationResult]) -> None:
 
 
 def _write_csv(results: list[RelationResult], path: str) -> None:
-    """Write the full ranking to ``path`` as CSV."""
+    """Write the full ranking to ``path`` as CSV, creating parent directories as needed."""
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["name_1", "name_2", "name_3", "real_error", "null_mean", "null_std", "z_score", "ratio"])

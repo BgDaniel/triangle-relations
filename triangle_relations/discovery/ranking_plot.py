@@ -72,9 +72,12 @@ def plot_ranking(
     results:
         Results as returned by
         :func:`~triangle_relations.discovery.scalar_relations.search_three_scalar_relations`
-        or :func:`load_ranking_csv`; assumed already sorted (ascending
-        ``ratio``, strongest candidate first). Only the first ``top`` are
-        plotted.
+        or :func:`load_ranking_csv`, in any order: this function sorts them
+        by descending ``z_score`` itself (independently of whatever order
+        they arrived in, e.g. the ``ratio``-based order
+        ``search_three_scalar_relations`` returns) before selecting and
+        plotting the top ``top``, so the plotted order always matches what
+        it's plotting.
     top:
         Maximum number of triples to show.
     ax:
@@ -88,7 +91,7 @@ def plot_ranking(
     if not results:
         raise ValueError("no results to plot")
 
-    shown = results[:top]
+    shown = sorted(results, key=lambda r: r.z_score, reverse=True)[:top]
     labels = [", ".join(r.names) for r in shown]
     z_scores = [r.z_score for r in shown]
 

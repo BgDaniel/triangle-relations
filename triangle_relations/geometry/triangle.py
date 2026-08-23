@@ -334,6 +334,18 @@ class Triangle:
         "steiner_focus_2": lambda t: t.steiner_focus_2(),
     }
 
+    #: Short symbol for each registered point, following classical
+    #: triangle-geometry notation (e.g. O = circumcenter, I = incenter),
+    #: used to keep plot labels compact; see :attr:`SCALAR_SYMBOLS`.
+    POINT_SYMBOLS: dict[str, str] = {
+        "centroid": "G",
+        "circumcenter": "O",
+        "incenter": "I",
+        "orthocenter": "H",
+        "steiner_focus_1": "F1",
+        "steiner_focus_2": "F2",
+    }
+
     #: Registry mapping a scalar name to a callable computing it from a
     #: ``Triangle``. Populated with the intrinsic scalars below, then
     #: extended automatically with every pairwise distance between
@@ -352,10 +364,31 @@ class Triangle:
         #"angle_C": lambda t: t.angle_C(),
     }
 
+    #: Short symbol for each registered scalar, for compact plot labels.
+    #: Populated here for the intrinsic scalars above; extended
+    #: automatically for pairwise-distance scalars by
+    #: :meth:`_register_pairwise_point_distances`, as the concatenation of
+    #: the two points' symbols (e.g. "OI" for ``dist_circumcenter__incenter``,
+    #: matching how Euler's relation is classically written, ``d = OI``).
+    SCALAR_SYMBOLS: dict[str, str] = {
+        "area": "Δ",  # Δ
+        "perimeter": "P",
+        "semiperimeter": "s",
+        "circumradius": "R",
+        "inradius": "r",
+        "side_a": "a",
+        "side_b": "b",
+        "side_c": "c",
+        "angle_A": "α",  # α
+        "angle_B": "β",  # β
+        "angle_C": "γ",  # γ
+    }
+
     @classmethod
     def _register_pairwise_point_distances(cls) -> None:
         """Add ``dist_<point1>__<point2>`` to :attr:`SCALARS` for every pair
-        of points in :attr:`POINTS` (in alphabetical order of point names)."""
+        of points in :attr:`POINTS` (in alphabetical order of point names),
+        and a corresponding entry to :attr:`SCALAR_SYMBOLS`."""
         for name1, name2 in combinations(sorted(cls.POINTS), 2):
             key = f"dist_{name1}__{name2}"
             if key in cls.SCALARS:
@@ -367,6 +400,7 @@ class Triangle:
                 )
 
             cls.SCALARS[key] = make()
+            cls.SCALAR_SYMBOLS[key] = cls.POINT_SYMBOLS[name1] + cls.POINT_SYMBOLS[name2]
 
     def point(self, name: str) -> np.ndarray:
         """Evaluate a registered derived point by name (see :attr:`POINTS`)."""
