@@ -1,4 +1,4 @@
-"""Plot the z-score ranking from a saved discover_scalar_relations.py CSV.
+"""Plot the z-score and ratio rankings from a saved discover_scalar_relations.py CSV.
 
 This is meant to be run directly (e.g. from within an IDE): edit CSV_PATH
 below to point at a ranking CSV (written when discover_scalar_relations.py
@@ -39,10 +39,9 @@ TOP = 20
 
 
 def main() -> None:
-    """Load CSV_PATH and plot its top TOP candidate triples by z-score."""
+    """Load CSV_PATH and plot its top TOP candidate triples by z-score and by ratio."""
     logger.info("reading ranking from %s", CSV_PATH)
     plot_ranking_from_csv(CSV_PATH, top=TOP)
-    plt.tight_layout()
     plt.show()
 
 

@@ -1,8 +1,16 @@
 """Plot the ranking of candidate scalar triples produced by Program 1.
 
-:func:`plot_ranking` draws a horizontal bar chart of z-scores for the
-top-ranked triples returned by
-:func:`~triangle_relations.discovery.scalar_relations.search_three_scalar_relations`.
+:func:`plot_ranking` draws two stacked, y-axis-aligned bar-chart panels for
+the top-``top`` candidate triples by z-score: the z-score itself on top, and
+the *relative* null standard deviation (``null_std / null_mean``) for those
+same triples, in the same order, below. Since
+``z = (null_mean - real_error) / null_std``, a small ``null_std`` alone can
+inflate a z-score without the real/null gap actually being large; triples
+whose relative sigma falls below :data:`SMALL_RELATIVE_SIGMA_THRESHOLD` are
+flagged in orange in both panels, as a visual cue to treat that z-score with
+more caution (e.g. by checking ``ratio`` instead, from the CSV or the log
+table) rather than take it at face value.
+
 :func:`load_ranking_csv` reconstructs that same list of results from a CSV
 file previously written by ``scripts/discover_scalar_relations.py``, so a
 completed search can be re-plotted later without rerunning it; see
@@ -19,11 +27,17 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 
 from triangle_relations.discovery.scalar_relations import RelationResult
+from triangle_relations.geometry.triangle import Triangle
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
 
 logger = logging.getLogger(__name__)
+
+#: Relative null standard deviation (null_std / null_mean) below this is
+#: flagged: a small denominator can inflate a triple's z-score even without
+#: a strong real/null gap, so its z-score alone is less trustworthy.
+SMALL_RELATIVE_SIGMA_THRESHOLD = 0.15
 
 
 def load_ranking_csv(path: str | Path) -> list[RelationResult]:
@@ -59,64 +73,81 @@ def load_ranking_csv(path: str | Path) -> list[RelationResult]:
     return sorted(results, key=lambda r: r.ratio)
 
 
-def plot_ranking(
-    results: list[RelationResult],
-    *,
-    top: int = 20,
-    ax: "Axes | None" = None,
-) -> "Axes":
-    """Plot a horizontal bar chart of z-scores for the top-ranked triples.
+def _symbol_label(names: tuple[str, str, str]) -> str:
+    """Render a scalar triple as its short-symbol form, e.g. ``(R, r, OI)``."""
+    return "(" + ", ".join(Triangle.scalar_symbol(n) for n in names) + ")"
+
+
+def _relative_sigma(r: RelationResult) -> float:
+    """``null_std / null_mean``, or 0.0 if ``null_mean`` is non-positive (near-degenerate)."""
+    return r.null_std / r.null_mean if r.null_mean > 0 else 0.0
+
+
+def plot_ranking(results: list[RelationResult], *, top: int = 20) -> "Figure":
+    """Plot the top triples by z-score, with their relative null std alongside.
+
+    Two stacked panels share the same y-axis: the same top-``top`` triples,
+    in the same z-score-ranked order, so a given row shows both numbers for
+    the same triple. Scalar names are abbreviated to their short symbols
+    (see :attr:`~triangle_relations.geometry.triangle.Triangle.SCALAR_SYMBOLS`),
+    e.g. ``(R, r, OI)`` for ``(circumradius, inradius, dist_circumcenter__incenter)``.
 
     Parameters
     ----------
     results:
         Results as returned by
         :func:`~triangle_relations.discovery.scalar_relations.search_three_scalar_relations`
-        or :func:`load_ranking_csv`, in any order: this function sorts them
-        by descending ``z_score`` itself (independently of whatever order
-        they arrived in, e.g. the ``ratio``-based order
-        ``search_three_scalar_relations`` returns) before selecting and
-        plotting the top ``top``, so the plotted order always matches what
-        it's plotting.
+        or :func:`load_ranking_csv`, in any order.
     top:
         Maximum number of triples to show.
-    ax:
-        An existing matplotlib ``Axes`` to draw into; a new figure is
-        created if omitted.
 
     Returns
     -------
-    The matplotlib ``Axes`` used for the plot.
+    The matplotlib ``Figure`` containing both panels.
     """
     if not results:
         raise ValueError("no results to plot")
 
     shown = sorted(results, key=lambda r: r.z_score, reverse=True)[:top]
-    labels = [", ".join(r.names) for r in shown]
+    labels = [_symbol_label(r.names) for r in shown]
     z_scores = [r.z_score for r in shown]
+    rel_sigmas = [_relative_sigma(r) for r in shown]
+    flagged = [s < SMALL_RELATIVE_SIGMA_THRESHOLD for s in rel_sigmas]
+    colors = ["tab:orange" if f else "tab:blue" for f in flagged]
+    logger.info(
+        "%d of the top %d triples have relative null std below %.2f (z-score may be inflated)",
+        sum(flagged), len(shown), SMALL_RELATIVE_SIGMA_THRESHOLD,
+    )
 
-    if ax is None:
-        logger.debug("no Axes supplied; creating a new figure")
-        _, ax = plt.subplots(figsize=(9, 0.4 * len(shown) + 1.5))
+    figsize = (9, 0.4 * len(shown) + 3.0)
+    fig, (ax_z, ax_sigma) = plt.subplots(2, 1, figsize=figsize, sharey=True)
 
     y = range(len(shown))
-    colors = ["tab:green" if z >= 0 else "tab:red" for z in z_scores]
-    ax.barh(y, z_scores, color=colors)
-    ax.set_yticks(list(y))
-    ax.set_yticklabels(labels, fontsize=8)
-    ax.invert_yaxis()  # strongest candidate (first in the list) on top
-    ax.axvline(0, color="black", linewidth=0.8)
-    ax.set_xlabel("z-score")
-    ax.set_title(f"Top {len(shown)} of {len(results)} candidate triples by z-score")
-    ax.figure.tight_layout()
-    return ax
+    ax_z.barh(y, z_scores, color=colors)
+    ax_z.axvline(0, color="black", linewidth=0.8)
+    ax_z.set_xlabel("z-score")
+    ax_z.set_title(f"Top {len(shown)} of {len(results)} by z-score", fontsize=10)
+
+    ax_sigma.barh(y, rel_sigmas, color=colors)
+    ax_sigma.axvline(
+        SMALL_RELATIVE_SIGMA_THRESHOLD, color="gray", linewidth=0.8, linestyle="--",
+    )
+    ax_sigma.set_xlabel("relative null std  (null_std / null_mean)")
+    ax_sigma.set_title("Same triples: how tight was the null estimate?", fontsize=10)
+
+    ax_z.set_yticks(list(y))
+    ax_z.set_yticklabels(labels, fontsize=9)
+    ax_z.invert_yaxis()  # strongest (highest z-score) on top; shared, so flips ax_sigma too
+
+    fig.suptitle(
+        f"Candidate scalar triples ranked by z-score\n"
+        f"(orange = relative null std < {SMALL_RELATIVE_SIGMA_THRESHOLD}: "
+        f"treat this z-score with caution, e.g. check ratio instead)"
+    )
+    fig.tight_layout()
+    return fig
 
 
-def plot_ranking_from_csv(
-    path: str | Path,
-    *,
-    top: int = 20,
-    ax: "Axes | None" = None,
-) -> "Axes":
+def plot_ranking_from_csv(path: str | Path, *, top: int = 20) -> "Figure":
     """Convenience wrapper: :func:`load_ranking_csv` then :func:`plot_ranking`."""
-    return plot_ranking(load_ranking_csv(path), top=top, ax=ax)
+    return plot_ranking(load_ranking_csv(path), top=top)

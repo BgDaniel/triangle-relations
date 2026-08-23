@@ -117,7 +117,6 @@ def main() -> None:
 
     if PLOT_RANKING:
         plot_ranking(results, top=TOP)
-        plt.tight_layout()
         plt.show()
 
 

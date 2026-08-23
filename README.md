@@ -77,9 +77,23 @@ a path hardcoded in the script — set it once in your environment (see
 scripts pick it up automatically. If it's unset, `OUTPUT_CSV` defaults to
 `None` (no CSV written) and `CSV_PATH` defaults to `output/ranking.csv`.
 
-By default (`PLOT_RANKING = True`) a horizontal bar chart of z-scores for
-the top `TOP` triples is shown automatically once the search finishes. To
-re-plot a previously saved ranking later without rerunning the search, run:
+By default (`PLOT_RANKING = True`) a two-panel bar chart is shown
+automatically once the search finishes: the top `TOP` triples by z-score on
+top, and — for those exact same triples, in the same order (the two panels
+share a y-axis) — their *relative* null standard deviation
+(`null_std / null_mean`) below. Since `z = (null_mean - real_error) /
+null_std`, a small `null_std` alone can inflate a z-score without the
+real/null gap actually being large; triples whose relative sigma falls
+below `SMALL_RELATIVE_SIGMA_THRESHOLD` (default `0.15`) are drawn in orange
+in *both* panels, as a visual cue to treat that particular z-score with more
+caution (e.g. check `ratio` instead, from the CSV or the log table) rather
+than take it at face value. Scalar names are abbreviated to short symbols
+(e.g. `R` = circumradius, `r` = inradius, `OI` = distance between
+circumcenter and incenter — see
+`Triangle.SCALAR_SYMBOLS`/`Triangle.scalar_symbol`) so labels stay compact
+even for long triples.
+
+To re-plot a previously saved ranking later without rerunning the search, run:
 
 ```
 poetry run python scripts/plot_ranking.py

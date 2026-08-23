@@ -410,6 +410,14 @@ class Triangle:
         """Evaluate a registered derived scalar by name (see :attr:`SCALARS`)."""
         return float(self.SCALARS[name](self))
 
+    @classmethod
+    def scalar_symbol(cls, name: str) -> str:
+        """Short symbol for a registered scalar (see :attr:`SCALAR_SYMBOLS`).
+
+        Falls back to ``name`` itself if it has no registered symbol.
+        """
+        return cls.SCALAR_SYMBOLS.get(name, name)
+
     def all_scalars(self) -> dict[str, float]:
         """Evaluate every registered scalar quantity, keyed by name."""
         return {name: self.scalar(name) for name in self.SCALARS}
