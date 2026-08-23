@@ -51,6 +51,7 @@ class _ChartAutoencoder(nn.Module):
         )
 
     def forward(self, chart_xy: torch.Tensor) -> torch.Tensor:
+        """Encode then decode ``chart_xy`` (shape ``(n, 2)``), returning reconstructed chart coordinates."""
         return self.decoder(self.encoder(chart_xy))
 
 

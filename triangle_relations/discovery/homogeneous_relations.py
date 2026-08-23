@@ -169,6 +169,8 @@ def _evaluate_triple(
     hidden: int,
     n_restarts: int,
     test_size: float,
+    n_epochs: int,
+    lr: float,
     seed: int,
 ) -> HomogeneousRelationResult | None:
     """Run the bottleneck-1 detection test on one triple's degree-equalized embedding."""
@@ -183,6 +185,8 @@ def _evaluate_triple(
         hidden=hidden,
         n_restarts=n_restarts,
         test_size=test_size,
+        n_epochs=n_epochs,
+        lr=lr,
         random_state=seed,
     )
     logger.debug("%s: error=%.4g", names, error)
@@ -196,6 +200,8 @@ def search_homogeneous_relations(
     hidden: int = 8,
     n_restarts: int = 1,
     test_size: float = 0.3,
+    n_epochs: int = 1500,
+    lr: float = 0.02,
     n_jobs: int = 1,
     random_state: int | None = None,
     progress: bool = True,
@@ -214,8 +220,11 @@ def search_homogeneous_relations(
         :attr:`Triangle.SCALARS`). Defaults to every registered scalar.
         Scalars of degree <= 0 (e.g. angles) are always excluded (see the
         module docstring) and logged.
-    hidden, n_restarts, test_size:
-        Passed to :func:`~triangle_relations.discovery.autoencoder.reconstruction_error`.
+    hidden, n_restarts, test_size, n_epochs, lr:
+        Passed to
+        :func:`~triangle_relations.discovery.sphere_autoencoder.sphere_reconstruction_error`.
+        Lowering ``n_epochs`` trades detection sharpness for speed -- useful
+        for a quick first pass over a large search space, or in tests.
     n_jobs:
         Passed to :class:`joblib.Parallel`; ``-1`` uses all cores.
     random_state:
@@ -253,6 +262,8 @@ def search_homogeneous_relations(
             hidden=hidden,
             n_restarts=n_restarts,
             test_size=test_size,
+            n_epochs=n_epochs,
+            lr=lr,
             seed=int(seed),
         )
         for (i, j, k), seed in zip(triples, seeds)

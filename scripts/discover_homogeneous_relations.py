@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 #: Number of triangles to sample, evenly, over shape space.
-N_SAMPLES = 2000
+N_SAMPLES = 5000
 
 #: Autoencoder hidden-layer width (topology is (HIDDEN, 1, HIDDEN)).
 HIDDEN = 8
@@ -52,6 +52,14 @@ N_RESTARTS = 1
 
 #: Held-out fraction used to measure autoencoder reconstruction error.
 TEST_SIZE = 0.3
+
+#: Full-batch gradient-descent steps per training run; see the "A note on
+#: N_SHUFFLES" section of the README for the analogous speed/precision
+#: trade-off (lower = faster, less sharp separation between candidates).
+N_EPOCHS = 1500
+
+#: Adam learning rate for training the chart-based sphere autoencoder.
+LR = 0.02
 
 #: Number of top-ranked triples to report.
 TOP = 10
@@ -99,6 +107,8 @@ def main() -> None:
         hidden=HIDDEN,
         n_restarts=N_RESTARTS,
         test_size=TEST_SIZE,
+        n_epochs=N_EPOCHS,
+        lr=LR,
         n_jobs=N_JOBS,
         random_state=SEED,
     )
