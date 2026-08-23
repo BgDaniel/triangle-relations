@@ -14,7 +14,7 @@ the same :func:`orthonormal_frame` / :func:`forward_chart` pair:
 * :mod:`triangle_relations.discovery.inspect_relation` instead picks a pole
   *adapted* to whichever triple is being plotted (antipodal to its own
   data's mean direction), purely to minimize visual distortion for that one
-  plot -- a different, but equally "generic" in the sense of Section 6 of
+  plot -- a different, but equally "generic" in the sense of Section 5 of
   the theory doc, choice of the same underlying chart.
 """
 

@@ -3,7 +3,7 @@
 Program 1b: like scripts/discover_scalar_relations.py, but restricted to
 relations that are homogeneous under uniform scaling of the triangle (which
 covers essentially every relation of practical interest -- see
-triangle_relations.discovery.homogeneous_relations and Section 6 of
+triangle_relations.discovery.homogeneous_relations and Section 5 of
 docs/discovering_triangle_relations.tex). In exchange, no permutation null
 is needed at all: triangles are sampled once, evenly, over the space of
 triangle *shapes* (triangle_relations.discovery.shape_space), and each

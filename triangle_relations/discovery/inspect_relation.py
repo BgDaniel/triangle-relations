@@ -13,7 +13,7 @@ can actually be drawn.
 If the three scalars satisfy an exact homogeneous relation, the sampled
 points should visibly collapse onto a thin 1-dimensional curve; if not, they
 should fill an open 2-dimensional patch. This is exactly the dichotomy
-Section 6 of ``docs/discovering_triangle_relations.tex`` describes for the
+Section 5 of ``docs/discovering_triangle_relations.tex`` describes for the
 map ``Phi_bar: Sigma -> S^2_+``, made visible.
 
 The chart used here is *not* fixed in advance (e.g. "always divide by the
@@ -21,7 +21,7 @@ third coordinate"): it is a stereographic projection whose pole is chosen
 per triple, antipodal to that triple's own sampled points' mean direction,
 so the chart's one excluded point sits as far as possible from the actual
 data and distorts it as little as possible. This is the generic-chart
-argument from Section 6's "Why a generic chart is safe" remark, applied
+argument from Section 5's "Why a generic chart is safe" remark, applied
 concretely: any reasonable chart would show the same qualitative picture
 (curve vs. patch), this one is just chosen to look good for whichever
 triple happens to be passed in.

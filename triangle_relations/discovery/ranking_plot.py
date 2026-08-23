@@ -407,7 +407,7 @@ def plot_homogeneous_ranking(
     (:attr:`~triangle_relations.discovery.homogeneous_relations.HomogeneousRelationResult.error`),
     with no separate z-score/ratio split and no relative-null-std companion
     metric, since there is no permutation null at all -- that is the whole
-    point of Program 1b (see Section 6 of the theory doc). Bar height is
+    point of Program 1b (see Section 5 of the theory doc). Bar height is
     ``error``, ascending (smallest = strongest candidate), the same
     "smaller is stronger" convention as :func:`plot_ratio_ranking`. The
     Euler triple, if present, is always shown (even outside ``top``) and

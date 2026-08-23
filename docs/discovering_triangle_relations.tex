@@ -473,6 +473,36 @@ Propositions~\ref{prop:suff}--\ref{prop:nec}, now with $\Sigma$ and
 $S^2_+$ in place of $X\subset\mathbb R^3$, and geodesic distance on $S^2_+$
 in place of Euclidean distance in $\mathbb R^3$.
 
+Figure~\ref{fig:homogeneous-dichotomy} shows this dichotomy directly:
+$4000$ triangles sampled evenly over $\Sigma$, mapped through $\bar\Phi$ and
+viewed under a generic chart of the target (a stereographic projection, as
+in Remark~\ref{rem:chart}, but on $S^2_+$ rather than $\Sigma$) --- for a
+triple satisfying an exact relation, a curve; for one that doesn't, an open
+patch.
+
+\begin{figure}[htb]
+  \centering
+  \begin{minipage}{0.46\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/homogeneous_relation_curve}
+    \\(a) $(R,r,d)$: an exact relation
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.46\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/homogeneous_relation_patch}
+    \\(b) $(r,d,GH)$: no relation
+  \end{minipage}
+  \caption{The image of $\bar\Phi$ under a generic chart of $S^2_+$
+    (Remark~\ref{rem:chart}'s construction, applied to the target). (a) The
+    Euler triple $(R,r,d)$: an exact homogeneous relation collapses the
+    image onto a $1$-dimensional curve. (b) $(r,d,GH)$ (inradius,
+    incenter--circumcenter distance, centroid--orthocenter distance), with
+    no known relation: the image fills an open $2$-dimensional patch, as
+    expected generically.}
+  \label{fig:homogeneous-dichotomy}
+\end{figure}
+
 \begin{remark}[Why this removes the null]\label{rem:removes-null}
 Chordal (equivalently, up to a monotone reparametrization, geodesic)
 distance on $S^2_+$ is bounded above by the sphere's diameter,
