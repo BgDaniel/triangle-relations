@@ -1,6 +1,7 @@
-"""Plot the ranking of candidate scalar triples produced by Program 1.
+"""Plot the ranking of candidate scalar triples produced by Program 1 and Program 1b.
 
-Two separate figures, both with the same two-panel structure: the ranking
+For Program 1 (:mod:`triangle_relations.discovery.scalar_relations`): two
+separate figures, both with the same two-panel structure: the ranking
 metric on top, and the *relative* null standard deviation
 (``null_std / null_mean``) for those same triples, in the same order, below
 (since ``z = (null_mean - real_error) / null_std``, a small ``null_std``
@@ -46,6 +47,14 @@ precise z-score for those finalists.
 previously written by ``scripts/discover_scalar_relations.py``, so a
 completed search can be re-plotted later without rerunning it; see
 ``scripts/plot_ranking.py`` for a ready-to-run script that does exactly this.
+
+For Program 1b (:mod:`triangle_relations.discovery.homogeneous_relations`):
+a single figure, :func:`plot_homogeneous_ranking`, since there is only one
+score per triple there (no z-score/ratio split, and no null-based
+relative-sigma companion metric -- Program 1b needs no null at all).
+:func:`load_homogeneous_ranking_csv` is the Program-1b analogue of
+:func:`load_ranking_csv`, for CSVs written by
+``scripts/discover_homogeneous_relations.py``.
 """
 
 from __future__ import annotations
@@ -53,10 +62,11 @@ from __future__ import annotations
 import csv
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Protocol, TypeVar
 
 import matplotlib.pyplot as plt
 
+from triangle_relations.discovery.homogeneous_relations import HomogeneousRelationResult
 from triangle_relations.discovery.known_relations import EULER_TRIPLE_NAMES, is_euler_triple
 from triangle_relations.discovery.scalar_relations import RelationResult
 from triangle_relations.geometry.triangle import Triangle
@@ -75,6 +85,24 @@ SMALL_RELATIVE_SIGMA_THRESHOLD = 0.15
 
 _HIGHLIGHT_COLOR = "red"
 _DEFAULT_COLOR = "tab:blue"
+
+
+class _HasNames(Protocol):
+    """Structural type for anything with a ``names`` triple -- both result dataclasses qualify.
+
+    Lets the Euler-highlighting helpers below (:func:`_is_euler_triple`,
+    :func:`_select_with_euler_reference`, :func:`_highlight_colors`,
+    :func:`_label_euler_bar`) be shared between
+    :class:`~triangle_relations.discovery.scalar_relations.RelationResult`
+    (Program 1) and
+    :class:`~triangle_relations.discovery.homogeneous_relations.HomogeneousRelationResult`
+    (Program 1b) without duplicating them.
+    """
+
+    names: tuple[str, str, str]
+
+
+_T = TypeVar("_T", bound=_HasNames)
 
 
 def load_ranking_csv(path: str | Path) -> list[RelationResult]:
@@ -120,7 +148,7 @@ def _relative_sigma(r: RelationResult) -> float:
     return r.null_std / r.null_mean if r.null_mean > 0 else 0.0
 
 
-def _is_euler_triple(r: RelationResult) -> bool:
+def _is_euler_triple(r: _HasNames) -> bool:
     return is_euler_triple(r.names)
 
 
@@ -131,9 +159,7 @@ def _top_name_sets(results: list[RelationResult], top: int) -> tuple[set[frozens
     return {frozenset(r.names) for r in by_z}, {frozenset(r.names) for r in by_ratio}
 
 
-def _select_with_euler_reference(
-    results: list[RelationResult], shown: list[RelationResult],
-) -> tuple[list[RelationResult], bool]:
+def _select_with_euler_reference(results: list[_T], shown: list[_T]) -> tuple[list[_T], bool]:
     """Append the Euler triple to ``shown`` if it exists in ``results`` but isn't already shown.
 
     Returns the (possibly extended) list and whether an append happened, so
@@ -147,14 +173,21 @@ def _select_with_euler_reference(
     return [*shown, euler_result], True
 
 
-def _highlight_colors(shown: list[RelationResult], in_both: set[frozenset]) -> list[str]:
+def _highlight_colors(shown: list[_T], in_both: set[frozenset] = frozenset()) -> list[str]:
+    """Red for the Euler triple, or any triple whose name-set is in ``in_both``; blue otherwise.
+
+    ``in_both`` is only meaningful for Program 1's two-metric plots (top-N
+    agreement between z-score and ratio); Program 1b has just one metric, so
+    its single-panel plot calls this with the default empty set, reducing
+    the highlighting rule to "Euler only."
+    """
     return [
         _HIGHLIGHT_COLOR if (frozenset(r.names) in in_both or _is_euler_triple(r)) else _DEFAULT_COLOR
         for r in shown
     ]
 
 
-def _label_euler_bar(ax: "Axes", shown: list[RelationResult], x: range, heights: list[float]) -> None:
+def _label_euler_bar(ax: "Axes", shown: list[_T], x: range, heights: list[float]) -> None:
     """Annotate the Euler triple's bar with a small "Euler" label, if present in ``shown``."""
     for i, r in enumerate(shown):
         if _is_euler_triple(r):
@@ -328,3 +361,105 @@ def load_and_plot_z_score_ranking(path: str | Path, *, top: int = 20) -> "Figure
 def load_and_plot_ratio_ranking(path: str | Path, *, top: int = 20) -> "Figure":
     """Convenience wrapper: :func:`load_ranking_csv` then :func:`plot_ratio_ranking`."""
     return plot_ratio_ranking(load_ranking_csv(path), top=top)
+
+
+# ---------------------------------------------------------------------------
+# Program 1b (homogeneous_relations.HomogeneousRelationResult)
+# ---------------------------------------------------------------------------
+
+
+def load_homogeneous_ranking_csv(path: str | Path) -> list[HomogeneousRelationResult]:
+    """Load a homogeneous-ranking CSV written by ``scripts/discover_homogeneous_relations.py``.
+
+    Parameters
+    ----------
+    path:
+        CSV path with columns ``name_1, name_2, name_3, degree_1, degree_2,
+        degree_3, error``.
+
+    Returns
+    -------
+    Results sorted by ascending ``error`` (strongest candidate first), as
+    :func:`~triangle_relations.discovery.homogeneous_relations.search_homogeneous_relations`
+    would return them.
+    """
+    results = []
+    with open(path, newline="") as f:
+        for row in csv.DictReader(f):
+            results.append(
+                HomogeneousRelationResult(
+                    names=(row["name_1"], row["name_2"], row["name_3"]),
+                    degrees=(int(row["degree_1"]), int(row["degree_2"]), int(row["degree_3"])),
+                    error=float(row["error"]),
+                )
+            )
+    logger.info("loaded %d homogeneous result(s) from %s", len(results), path)
+    return sorted(results, key=lambda r: r.error)
+
+
+def plot_homogeneous_ranking(
+    results: list[HomogeneousRelationResult], *, top: int = 20
+) -> "Figure":
+    """Plot the top triples from Program 1b's homogeneous search, ranked by error.
+
+    A single panel, unlike :func:`plot_z_score_ranking`/:func:`plot_ratio_ranking`:
+    Program 1b reports just one number per triple
+    (:attr:`~triangle_relations.discovery.homogeneous_relations.HomogeneousRelationResult.error`),
+    with no separate z-score/ratio split and no relative-null-std companion
+    metric, since there is no permutation null at all -- that is the whole
+    point of Program 1b (see Section 6 of the theory doc). Bar height is
+    ``error``, ascending (smallest = strongest candidate), the same
+    "smaller is stronger" convention as :func:`plot_ratio_ranking`. The
+    Euler triple, if present, is always shown (even outside ``top``) and
+    highlighted in red with a small label, exactly as in the Program 1
+    plots.
+
+    Parameters
+    ----------
+    results:
+        Results as returned by
+        :func:`~triangle_relations.discovery.homogeneous_relations.search_homogeneous_relations`
+        or :func:`load_homogeneous_ranking_csv`, in any order.
+    top:
+        Maximum number of triples to show (the Euler triple is always shown
+        in addition, if present in ``results``).
+
+    Returns
+    -------
+    The matplotlib ``Figure``.
+    """
+    if not results:
+        raise ValueError("no results to plot")
+
+    shown = sorted(results, key=lambda r: r.error)[:top]
+    shown, euler_appended = _select_with_euler_reference(results, shown)
+
+    labels = [_symbol_label(r.names) for r in shown]
+    errors = [r.error for r in shown]
+    colors = _highlight_colors(shown)
+
+    figsize = (max(8.0, 0.55 * len(shown) + 2.0), 5.0)
+    fig, ax = plt.subplots(figsize=figsize, constrained_layout=True)
+
+    x = range(len(shown))
+    ax.bar(x, errors, color=colors)
+    ax.set_ylabel("sphere-collapse error\n(bottleneck-1 chordal reconstruction error);\nlower = stronger")
+    title_suffix = " (+ Euler reference)" if euler_appended else ""
+    ax.set_title(
+        f"Top {len(shown)} of {len(results)} homogeneous triples by error{title_suffix}", fontsize=10,
+    )
+    _label_euler_bar(ax, shown, x, errors)
+
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=9)
+
+    fig.suptitle(
+        "Candidate homogeneous scalar triples ranked by sphere-collapse error\n"
+        "(red = the reference Euler triple; no null needed -- see Program 1b)"
+    )
+    return fig
+
+
+def load_and_plot_homogeneous_ranking(path: str | Path, *, top: int = 20) -> "Figure":
+    """Convenience wrapper: :func:`load_homogeneous_ranking_csv` then :func:`plot_homogeneous_ranking`."""
+    return plot_homogeneous_ranking(load_homogeneous_ranking_csv(path), top=top)

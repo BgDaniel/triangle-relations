@@ -27,11 +27,14 @@ import logging
 import os
 from pathlib import Path
 
+import matplotlib.pyplot as plt
+
 from triangle_relations.discovery.homogeneous_relations import (
     HomogeneousRelationResult,
     log_euler_triple_rank,
     search_homogeneous_relations,
 )
+from triangle_relations.discovery.ranking_plot import plot_homogeneous_ranking
 from triangle_relations.discovery.shape_space import sample_shape_space
 from triangle_relations.geometry.triangle import Triangle
 
@@ -42,7 +45,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 #: Number of triangles to sample, evenly, over shape space.
-N_SAMPLES = 5000
+N_SAMPLES = 2500
 
 #: Autoencoder hidden-layer width (topology is (HIDDEN, 1, HIDDEN)).
 HIDDEN = 8
@@ -85,6 +88,10 @@ OUTPUT_CSV: str | None = (
     str(Path(_output_dir) / "homogeneous_ranking.csv") if _output_dir else None
 )
 
+#: Whether to plot the ranking (see triangle_relations.discovery.ranking_plot
+#: .plot_homogeneous_ranking) after a successful run.
+PLOT_RANKING: bool = True
+
 
 def main() -> None:
     """Sample shape space, search all homogeneous scalar triples, and report the ranking."""
@@ -118,6 +125,10 @@ def main() -> None:
 
     if OUTPUT_CSV:
         _write_csv(results, OUTPUT_CSV)
+
+    if PLOT_RANKING:
+        plot_homogeneous_ranking(results, top=TOP)
+        plt.show()
 
 
 def _log_ranking(results: list[HomogeneousRelationResult]) -> None:

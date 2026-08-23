@@ -4,6 +4,8 @@ This is meant to be run directly (e.g. from within an IDE): edit CSV_PATH
 below to point at a ranking CSV (written when discover_scalar_relations.py
 is run with OUTPUT_CSV set) and run this script.
 
+For Program 1b's ranking, see scripts/plot_homogeneous_ranking.py instead.
+
 Run with:
     poetry run python scripts/plot_ranking.py
 """

@@ -258,8 +258,24 @@ poetry run python scripts/discover_homogeneous_relations.py
 
 It logs the ranked triples (smallest `error` = strongest candidate) and,
 like `scripts/discover_scalar_relations.py`, the Euler triple's rank
-position, and optionally writes a CSV (`homogeneous_ranking.csv`, next to
-Program 1's `ranking.csv`, both under `PATH_TO_OUTPUT_FOLDER`).
+position, optionally writes a CSV (`homogeneous_ranking.csv`, next to
+Program 1's `ranking.csv`, both under `PATH_TO_OUTPUT_FOLDER`), and by
+default (`PLOT_RANKING = True`) plots the ranking once the search finishes
+(`triangle_relations.discovery.ranking_plot.plot_homogeneous_ranking`) —
+a single bar chart, since there's only one score per triple here, unlike
+Program 1's two-plot z-score/ratio split. Red bars mark the reference Euler
+triple, as in Program 1's plots.
+
+To re-plot a previously saved ranking later without rerunning the search,
+run:
+
+```
+poetry run python scripts/plot_homogeneous_ranking.py
+```
+
+(the Program-1b counterpart to `scripts/plot_ranking.py`, which plots
+Program 1's own CSV; the two are independent scripts, each reading its own
+CSV path).
 
 Program 1b shares search/progress-bar plumbing
 (`triangle_relations.discovery._parallel`) with Program 1, rather than
