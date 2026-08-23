@@ -16,7 +16,12 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-from triangle_relations.discovery.ranking_plot import plot_ranking_from_csv
+from triangle_relations.discovery.ranking_plot import (
+    load_ranking_csv,
+    log_euler_triple_rank,
+    plot_ratio_ranking,
+    plot_z_score_ranking,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +46,10 @@ TOP = 10
 def main() -> None:
     """Load CSV_PATH and plot its top TOP candidate triples by z-score and by ratio."""
     logger.info("reading ranking from %s", CSV_PATH)
-    plot_ranking_from_csv(CSV_PATH, top=TOP)
+    results = load_ranking_csv(CSV_PATH)
+    log_euler_triple_rank(results)
+    plot_z_score_ranking(results, top=TOP)
+    plot_ratio_ranking(results, top=TOP)
     plt.show()
 
 

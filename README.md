@@ -77,22 +77,34 @@ a path hardcoded in the script — set it once in your environment (see
 scripts pick it up automatically. If it's unset, `OUTPUT_CSV` defaults to
 `None` (no CSV written) and `CSV_PATH` defaults to `output/ranking.csv`.
 
-By default (`PLOT_RANKING = True`) a two-panel bar chart is shown
-automatically once the search finishes: the top `TOP` triples by z-score on
-top, and — for those exact same triples, in the same order (the two panels
-share an x-axis, with combination names only labeled on the bottom panel)
-— their *relative* null standard deviation
-(`null_std / null_mean`) below. Since `z = (null_mean - real_error) /
-null_std`, a small `null_std` alone can inflate a z-score without the
-real/null gap actually being large; triples whose relative sigma falls
-below `SMALL_RELATIVE_SIGMA_THRESHOLD` (default `0.15`) are drawn in orange
-in *both* panels, as a visual cue to treat that particular z-score with more
-caution (e.g. check `ratio` instead, from the CSV or the log table) rather
-than take it at face value. Scalar names are abbreviated to short symbols
-(e.g. `R` = circumradius, `r` = inradius, `OI` = distance between
-circumcenter and incenter — see
+By default (`PLOT_RANKING = True`) two figures are shown automatically once
+the search finishes:
+
+* **z-score plot**: two stacked, x-axis-aligned panels for the top `TOP`
+  triples by z-score — the z-score itself on top, and — for those exact
+  same triples, in the same order (combination names labeled once, on the
+  shared bottom axis) — their *relative* null standard deviation
+  (`null_std / null_mean`) below. Since `z = (null_mean - real_error) /
+  null_std`, a small `null_std` alone can inflate a z-score without the
+  real/null gap actually being large, so seeing it alongside the z-score is
+  a sanity check on how much to trust it.
+* **ratio plot**: the same two-panel layout, but ranked by ratio
+  (`real_error / null_mean`, ascending — smaller means stronger here, with a
+  reference line at 1.0 marking "no better than the shuffled null") with the
+  same relative null std sanity-check panel below it.
+
+In both plots, a triple ranked in the top `TOP` by *both* z-score and ratio
+— or the classical triple behind Euler's relation, `(R, r, OI)`
+(`circumradius, inradius, dist_circumcenter__incenter`; always shown for
+reference even if it falls outside `TOP`, and labeled "Euler" on its bar) —
+is drawn in red instead of blue. Scalar names throughout are abbreviated to
+short symbols (e.g. `R` = circumradius, `r` = inradius, `OI` = distance
+between circumcenter and incenter — see
 `Triangle.SCALAR_SYMBOLS`/`Triangle.scalar_symbol`) so labels stay compact
-even for long triples.
+even for long triples. `discover_scalar_relations.py` and `plot_ranking.py`
+both also log the Euler triple's rank position under each metric (e.g.
+`Euler triple (R, r, OI) ranks #3 of 120 by z-score, #1 of 120 by ratio`),
+whether or not it happens to fall inside `TOP`.
 
 To re-plot a previously saved ranking later without rerunning the search, run:
 
@@ -100,8 +112,31 @@ To re-plot a previously saved ranking later without rerunning the search, run:
 poetry run python scripts/plot_ranking.py
 ```
 
-(`triangle_relations.discovery.ranking_plot.plot_ranking` and
-`load_ranking_csv` are the underlying functions, usable directly too.)
+(`triangle_relations.discovery.ranking_plot.plot_z_score_ranking` and
+`plot_ratio_ranking` are the underlying functions, usable directly on a
+`list[RelationResult]` — e.g. one loaded via `load_ranking_csv` — too.)
+
+#### A note on `N_SHUFFLES`
+
+`null_std` (and hence both the z-score and the relative-null-std panel
+above) is a *sample* standard deviation estimated from only `N_SHUFFLES`
+independent shuffles per triple, so it is itself a noisy estimate: the
+standard error of a sample standard deviation from `n` points is roughly
+`sigma / sqrt(2*(n-1))`. At `N_SHUFFLES = 3` that's about 50% relative
+uncertainty on `null_std` itself — the earlier default of 3 was picked for
+runtime, not because it was statistically adequate, and it wasn't. Even
+`N_SHUFFLES = 30` is still around 13%; reaching 10% needs roughly 50
+shuffles, and 5% needs roughly 200. Since z-score divides by this noisy
+`null_std`, a small `N_SHUFFLES` can produce a misleadingly large *or*
+small z-score for the same underlying triple. `ratio` (`real_error /
+null_mean`) doesn't have this problem, since it only depends on
+`null_mean`, not `null_std` — the cheapest practical fix is a two-stage
+search: screen the full combinatorial space once with a small
+`N_SHUFFLES` using `ratio` as the primary signal (the relative-null-std
+panel flags triples whose z-score shouldn't be trusted yet), then rerun
+just the resulting shortlist with a much larger `N_SHUFFLES` (50-200+, via
+`SCALAR_NAMES` restricted to the shortlist's scalars) to get precise
+z-scores for the finalists.
 
 <details>
 <summary>Setting <code>PATH_TO_OUTPUT_FOLDER</code> permanently in VS Code</summary>

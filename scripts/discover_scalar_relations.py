@@ -17,7 +17,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from triangle_relations.discovery.ranking_plot import plot_ranking
+from triangle_relations.discovery.ranking_plot import (
+    log_euler_triple_rank,
+    plot_ratio_ranking,
+    plot_z_score_ranking,
+)
 from triangle_relations.discovery.sampling import build_scalar_dataset
 from triangle_relations.discovery.scalar_relations import RelationResult, search_three_scalar_relations
 from triangle_relations.geometry.triangle import Triangle
@@ -29,7 +33,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 #: Number of random triangles to sample.
-N_SAMPLES = 1500
+N_SAMPLES = 5000
 
 #: Random triangle vertices are drawn uniformly from [-SCALE, SCALE]^2.
 SCALE = 1.0
@@ -41,13 +45,13 @@ HIDDEN = 8
 N_RESTARTS = 1
 
 #: Number of independent column-shuffled null datasets averaged per triple.
-N_SHUFFLES = 3
+N_SHUFFLES = 500
 
 #: Held-out fraction used to measure autoencoder reconstruction error.
 TEST_SIZE = 0.3
 
 #: Number of top-ranked triples to report.
-TOP = 20
+TOP = 10
 
 #: Passed to joblib.Parallel; -1 uses all available cores.
 N_JOBS = -1
@@ -73,8 +77,8 @@ OUTPUT_DIR_ENV_VAR = "PATH_TO_OUTPUT_FOLDER"
 _output_dir = os.environ.get(OUTPUT_DIR_ENV_VAR)
 OUTPUT_CSV: str | None = str(Path(_output_dir) / "ranking.csv") if _output_dir else None
 
-#: Whether to plot the z-score ranking (see triangle_relations.discovery
-#: .ranking_plot.plot_ranking) after a successful run.
+#: Whether to plot the z-score and ratio rankings (see triangle_relations
+#: .discovery.ranking_plot) after a successful run.
 PLOT_RANKING: bool = True
 
 
@@ -111,12 +115,14 @@ def main() -> None:
     )
 
     _log_ranking(results[:TOP])
+    log_euler_triple_rank(results)
 
     if OUTPUT_CSV:
         _write_csv(results, OUTPUT_CSV)
 
     if PLOT_RANKING:
-        plot_ranking(results, top=TOP)
+        plot_z_score_ranking(results, top=TOP)
+        plot_ratio_ranking(results, top=TOP)
         plt.show()
 
 
