@@ -8,7 +8,7 @@ Two pipelines, sharing the bottleneck-autoencoder detector
   detects any functional relation, calibrated against a permutation null.
 * Program 1b (:mod:`triangle_relations.discovery.homogeneous_relations`,
   sampling via :mod:`triangle_relations.discovery.shape_space`): restricted
-  to *homogeneous* relations, needs no null (see Section 6 of
+  to *homogeneous* relations, needs no null (see Section 5 of
   ``docs/discovering_triangle_relations.tex``), so it can afford much more
   precise per-triple error estimates for the same cost.
 

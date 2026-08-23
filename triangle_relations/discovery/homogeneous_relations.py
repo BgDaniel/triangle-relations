@@ -6,7 +6,7 @@ consistent under uniform scaling of the triangle (every term of the
 relation scales the same way) -- which covers essentially every relation of
 practical interest, Euler's included (``d^2 = R^2 - 2Rr`` is homogeneous of
 degree 2 throughout). The full mathematical construction is written up in
-``docs/discovering_triangle_relations.tex``, Section 6; this is a summary of
+``docs/discovering_triangle_relations.tex``, Section 5; this is a summary of
 what the code below actually does.
 
 Restricting to homogeneous relations lets scale be quotiented out
@@ -73,7 +73,7 @@ Two scope notes:
   measure-zero way -- and if it somehow didn't (the image landed entirely
   inside the excluded locus), that would itself be a different discovered
   relation (the image confined to a lower-dimensional subset), not a
-  failure of the method. See Section 6 of the theory doc for the fuller
+  failure of the method. See Section 5 of the theory doc for the fuller
   version of this remark.
 """
 

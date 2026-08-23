@@ -35,6 +35,14 @@ from triangle_relations.discovery.spherical_chart import (
 
 logger = logging.getLogger(__name__)
 
+#: The maximum possible value of :func:`sphere_reconstruction_error`: squared
+#: chordal distance between two unit vectors, ``||x - y||**2``, is maximized
+#: at antipodal points (``y = -x``), where it equals ``||2x||**2 = 4``. Since
+#: every triple's embedding is a unit vector by construction (see
+#: :mod:`triangle_relations.discovery.homogeneous_relations`), this bound is
+#: the same for every triple, with no per-triple calibration needed.
+MAX_SPHERE_ERROR: float = 4.0
+
 
 class _ChartAutoencoder(nn.Module):
     """A ``(2, hidden, bottleneck, hidden, 2)`` MLP, tanh-activated like Program 1's."""

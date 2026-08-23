@@ -6,7 +6,7 @@ its vertices to ``0`` and ``1`` by a (unique) orientation-preserving
 similarity, and the third vertex lands at some
 ``zeta = (C - A) / (B - A) in C``. This *is* a chart on the 2-dimensional
 space of triangle shapes (topologically a sphere, by a classical theorem of
-Kendall (1984); see ``docs/discovering_triangle_relations.tex``, Section 6):
+Kendall (1984); see ``docs/discovering_triangle_relations.tex``, Section 5):
 it covers every shape except the single degenerate configuration ``B == A``
 (a single point, i.e. measure zero), and every ``zeta`` gives back a
 concrete, evaluable triangle, ``Triangle((0, 0), (1, 0), (zeta.real, zeta.imag))``.

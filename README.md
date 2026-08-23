@@ -201,7 +201,7 @@ distribution):
 pdflatex discovering_triangle_relations.tex
 ```
 
-Section 6 of the `.tex` source, "A scale-free reformulation via shape
+Section 5 of the `.tex` source, "A scale-free reformulation via shape
 space," derives Program 1b below in full — including *why* a coordinate
 chart is unavoidable to make any of this numerically concrete, and why a
 generic choice of chart can't silently hide a relation from the search (a
